@@ -17,6 +17,7 @@ struct ArrayLanguageParser;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DyadicVerb {
     Add,
+    Divide,
     Replicate,
     GreaterThan
 }
@@ -263,7 +264,8 @@ fn dyadic_verb_from_str(verb_str: &str) -> DyadicVerb {
         "+" => DyadicVerb::Add,
         "/" => DyadicVerb::Replicate,
         ">" => DyadicVerb::GreaterThan,
-        _ => panic!("Verb not implemented")
+        "÷" => DyadicVerb::Divide,
+        other => panic!("Verb {:?} not implemented", other)
     }
 }
 
@@ -358,12 +360,15 @@ fn execute_diadic_op(verb: DyadicVerb, lhs: ExecuteOutput, rhs: ExecuteOutput) -
         DyadicVerb::Add => {
             execute_add(lhs, rhs)
         },
+        DyadicVerb::Divide => {
+            execute_divide(lhs, rhs)
+        },
         DyadicVerb::Replicate => {
             execute_replicate_array(lhs, rhs)
         },
         DyadicVerb::GreaterThan => {
             execute_array_greaterthan_int(lhs, rhs)
-        }
+        },
         other => panic!("Dyadic verb not implemented {:?}", other)
     }
 }
@@ -435,6 +440,56 @@ fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
             | (ExecuteOutput::Numeric (int_val), ExecuteOutput::ArrayOfNumerics(int_array)) => execute_add_int_array_to_int(int_array, int_val),
         (lhs_other, rhs_other) => panic!("Cannot add pair ({:?}, {:?})", lhs_other, rhs_other)
     }
+}
+
+fn execute_divide(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
+    match (lhs, rhs) {
+        // dividing an array by a number
+        (ExecuteOutput::ArrayOfNumerics (lhs_array), ExecuteOutput::Numeric (numeric)) => execute_divide_array_by_numeric(lhs_array, numeric),
+        (ExecuteOutput::Numeric (lhs_numeric), ExecuteOutput::Numeric (rhs_numeric)) => execute_divide_numeric_by_numeric(lhs_numeric, rhs_numeric),
+        (lhs_other, rhs_other) => panic!("Cannot divide pair ({:?}, {:?})", lhs_other, rhs_other)
+    }
+}
+
+fn execute_divide_array_by_numeric(lhs_array: Vec<Numeric>, numeric: Numeric) -> ExecuteOutput {
+    let mut float_vals: Vec<f64> = Vec::new();
+
+    for val in lhs_array {
+        match val {
+            Numeric::Float (x) => float_vals.push(x),
+            Numeric::Int (x) => float_vals.push(x as f64)
+        }
+    }
+
+    let denominator = match numeric {
+        Numeric::Float(x) => x,
+        Numeric::Int(x) => x as f64
+    };
+
+    let mut output: Vec<Numeric> = Vec::new();
+
+    // TODO: is there a way to do this with float_vals.into_iter().map(...), couldn't get denominator to work
+    for val in float_vals {
+        output.push(Numeric::Float(val / denominator));
+    }
+
+    ExecuteOutput::ArrayOfNumerics(output)
+}
+
+fn execute_divide_numeric_by_numeric(lhs_numeric: Numeric, rhs_numeric: Numeric) -> ExecuteOutput {
+    let lhs_float = match lhs_numeric {
+        Numeric::Float(x) => x,
+        Numeric::Int(x) => x as f64
+    };
+
+    let rhs_float = match rhs_numeric {
+        Numeric::Float(x) => x,
+        Numeric::Int(x) => x as f64
+    };
+
+    let result: f64 = lhs_float / rhs_float;
+    
+    ExecuteOutput::Numeric(Numeric::Float(result))
 }
 
 fn execute_add_int_arrays(lhs_array: Vec<Numeric>, rhs_array: Vec<Numeric>) -> ExecuteOutput {

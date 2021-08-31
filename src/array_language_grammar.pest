@@ -1,0 +1,22 @@
+WHITESPACE = _{ " " }
+COMMENT = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+integer = @{ "-"? ~ ASCII_DIGIT+ }
+decimal = @{ "-"? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+ }
+variable = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+string = @{ "'" ~ ( "''" | (!"'" ~ ANY) )* ~ "'" }
+array = { "[" ~ (types ~ ",")* ~ types? ~ "]" }
+entry = { string ~ ":" ~ expression }
+dictionary = { "{" ~ (entry ~ ",")* ~ entry? ~ "}" }
+
+types = _{integer | decimal | dictionary}
+
+verb = { "+" | "print" | "⍳" | "⍴" | "/" | ">" }
+
+assignment = { variable ~ "<-" ~ expression }
+expression = { assignment | monadicExpression | dyadicExpression | string | terms }
+monadicExpression = { verb ~ expression }
+dyadicExpression = { (monadicExpression | terms) ~ verb ~ expression }
+term = _{ decimal | integer | variable | array | dictionary | "(" ~ expression ~ ")" }
+terms = { term+ }
+
+program = _{ SOI ~ "\n"* ~ (expression ~ "\n"+)* ~ expression? ~ EOI }

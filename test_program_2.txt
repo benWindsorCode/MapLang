@@ -1,3 +1,7 @@
 salaries <- [ 800, 100, 900, 200 ]
 print (salaries > 300) / salaries
 print ⍳⍴ salaries
+a <- [1,2]
+b <- [2,9]
+c <- a + b
+d <- (c > 5) / c

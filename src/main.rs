@@ -38,7 +38,8 @@ pub enum ExecuteOutput {
     // Dict of ints
     IntDictionary(HashMap<String, i32>),
     // Integer
-    Integer(i32)
+    Integer(i32),
+    Null
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -207,20 +208,14 @@ fn run_program(program: Vec<AstNode>) {
             node_matched => panic!("Unexpected node type in run program {:?}", node_matched)
         };
 
-        match node {
-            AstNode::GlobalVar {variable, expression} => {
-                state.insert(variable, execute_expression(*expression, &state));
-            },
-            any_other => {
-                execute_expression(any_other, &state);
-            }
-        };
+        // TODO: should we handle the assignment of variables out here instead? separately, then pass an immutable state in...
+        execute_expression(node, &mut state);
 
         println!("State is: {:?}", state);
     }
 }
 
-fn execute_diadic_op(verb: DyadicVerb, lhs: AstNode, rhs: AstNode, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn execute_diadic_op(verb: DyadicVerb, lhs: AstNode, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     match verb {
         DyadicVerb::Add => {
             execute_add_arrays(lhs, rhs, state)
@@ -235,7 +230,7 @@ fn execute_diadic_op(verb: DyadicVerb, lhs: AstNode, rhs: AstNode, state: &HashM
     }
 }
 
-fn execute_monadic_op(verb: MonadicVerb, rhs: AstNode, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn execute_monadic_op(verb: MonadicVerb, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     match verb {
         MonadicVerb::Print => {
             let val_to_print = execute_expression(rhs, state);
@@ -271,7 +266,7 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: AstNode, state: &HashMap<String, E
     }
 }
 
-fn execute_expression(expression: AstNode, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn execute_expression(expression: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     match expression {
         AstNode::DyadicOp {verb, lhs, rhs} => {
             let lhs_node = *lhs;
@@ -294,11 +289,21 @@ fn execute_expression(expression: AstNode, state: &HashMap<String, ExecuteOutput
         AstNode::Dictionary (dict) => {
             unwrap_dictionary(dict, state)
         },
+        AstNode::GlobalVar {variable, expression} => {
+            // TODO: is this nice? it stops a mutable borrow of the state twice
+            //        however what if the copy_state is updated inside execute_expression
+            //        we shoudl deal with that here somehow?
+            let mut copy_state = state.clone();
+            state.insert(variable, execute_expression(*expression, &mut copy_state));
+
+            // TODO Merge the inner and outer states? only needed once inner executions can modify state
+            ExecuteOutput::Null
+        },
         other_matched => panic!("Couldn't match node {:?} in execute expression", other_matched)
     }
 }
 
-fn execute_add_arrays(lhs: AstNode, rhs: AstNode, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn execute_add_arrays(lhs: AstNode, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     let lhs_array = match execute_expression(lhs, state) {
         ExecuteOutput::IntArray (arr) => arr,
         other => panic!("Array addition cant handle non array type {:?}", other)
@@ -325,7 +330,7 @@ fn execute_add_arrays(lhs: AstNode, rhs: AstNode, state: &HashMap<String, Execut
     ExecuteOutput::IntArray(output)
 }
 
-fn execute_replicate_array(lhs: AstNode, rhs: AstNode, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn execute_replicate_array(lhs: AstNode, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     let lhs_array = match execute_expression(lhs, state) {
         ExecuteOutput::IntArray (arr) => arr,
         other => panic!("Array replication cant handle non array type {:?}", other)
@@ -359,7 +364,7 @@ fn execute_replicate_array(lhs: AstNode, rhs: AstNode, state: &HashMap<String, E
     ExecuteOutput::IntArray(output)
 }
 
-fn execute_array_greaterthan_int(lhs: AstNode, rhs: AstNode, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn execute_array_greaterthan_int(lhs: AstNode, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     let lhs_array = match execute_expression(lhs, state) {
         ExecuteOutput::IntArray (arr) => arr,
         other => panic!("Array greaterthan cant handle non array lhs type {:?}", other)
@@ -384,7 +389,7 @@ fn execute_array_greaterthan_int(lhs: AstNode, rhs: AstNode, state: &HashMap<Str
 }
 
 // For now only support vectors of integers
-fn unwrap_array(vals: Vec<AstNode>, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn unwrap_array(vals: Vec<AstNode>, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     let mut int_array: Vec<i32> = Vec::new();
     let mut dict_array: Vec<ExecuteOutput> = Vec::new();
 
@@ -412,7 +417,7 @@ fn unwrap_array(vals: Vec<AstNode>, state: &HashMap<String, ExecuteOutput>) -> E
     return ExecuteOutput::DictArray(dict_array)
 }
 
-fn unwrap_dictionary(dict: HashMap<String, AstNode>, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn unwrap_dictionary(dict: HashMap<String, AstNode>, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     let mut dict_of_vec: HashMap<String, Vec<i32>> = HashMap::new();
     let mut dict_of_int: HashMap<String, i32> = HashMap::new();
 
@@ -455,6 +460,9 @@ fn unwrap_variable(var: String, state: &HashMap<String, ExecuteOutput>) -> Execu
             }
 
             ExecuteOutput::IntDictionary(copied_dict)
+        },
+        ExecuteOutput::Integer (int_val) => {
+            ExecuteOutput::Integer(int_val.clone())
         },
         other => panic!("Cant handle variables of type {:?}", other)
     };

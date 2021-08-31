@@ -6,6 +6,7 @@ use pest::Parser;
 use pest::error::Error;
 use std::fs;
 use std::collections::HashMap;
+use std::ops::Add;
 
 #[derive(Parser)]
 #[grammar = "array_language_grammar.pest"]
@@ -26,26 +27,44 @@ pub enum MonadicVerb {
     Shape
 }
 
+#[derive(Debug, Copy, PartialEq, Clone, PartialOrd)]
+pub enum Numeric {
+    Int(i64),
+    Float(f64)
+}
+
+impl Add for Numeric {
+    type Output = Numeric;
+
+    fn add(self, other: Numeric) -> Numeric {
+        match (self, other) {
+            (Numeric::Int(a), Numeric::Int(b)) => Numeric::Int(a + b),
+            (Numeric::Float(a), Numeric::Float(b)) => Numeric::Float(a + b),
+            (self_unknown, other_unknown) => panic!("Cannot add numerics: {:?} + {:?}", self_unknown, other_unknown)
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum ExecuteOutput {
     // Array of ints
-    IntArray(Vec<i32>),
+    ArrayOfNumerics(Vec<Numeric>),
     // TODO: is there a nicer way to make the inner value forced to Dict? perhaps the Dict(Dict) pattern with inner structure of enum
     // Array of dicts
-    DictArray(Vec<ExecuteOutput>),
+    ArrayOfDicts(Vec<ExecuteOutput>),
     // Dict of int arrays
-    Dictionary(HashMap<String, Vec<i32>>),
+    Dictionary(HashMap<String, Vec<Numeric>>),
     // Dict of ints
-    IntDictionary(HashMap<String, i32>),
-    // Integer
-    Integer(i32),
+    IntDictionary(HashMap<String, Numeric>),
+    // Numeric int or float
+    Numeric(Numeric),
     Null
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum AstNode {
     Node(Box<AstNode>),
-    Integer(i32),
+    Numeric(Numeric),
     DoublePrecisionFloat(f64),
     DyadicOp {
         verb: DyadicVerb,
@@ -134,8 +153,13 @@ fn build_ast_from_term(pair: pest::iterators::Pair<Rule>) -> AstNode {
     match pair.as_rule() {
         Rule::integer => {
             let istr = pair.as_str();
-            let integer: i32 = istr.parse().unwrap();
-            AstNode::Integer(integer)
+            let integer: i64 = istr.parse().unwrap();
+            AstNode::Numeric(Numeric::Int(integer))
+        },
+        Rule::decimal => {
+            let fstr = pair.as_str();
+            let float: f64 = fstr.parse().unwrap();
+            AstNode::Numeric(Numeric::Float(float))
         },
         Rule::array => {
             let vals: Vec<AstNode> = pair.into_inner().map(build_ast_from_term).collect();
@@ -217,23 +241,27 @@ fn run_program(program: Vec<AstNode>) {
 
 fn execute_expression(expression: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     match expression {
+        // Unwrap lhs and rhs and compute operation
         AstNode::DyadicOp {verb, lhs, rhs} => {
             let lhs = execute_expression(*lhs, state);
             let rhs = execute_expression(*rhs, state);
             execute_diadic_op(verb, lhs, rhs)
         },
+        // Unwrap rhs and compute operation
         AstNode::MonadicOp {verb, rhs} => {
             let rhs = execute_expression(*rhs, state);
             execute_monadic_op(verb, rhs)
         },
+        // Unwrap + compute the inner values of the array
         AstNode::Array (vals) => {
             unwrap_array(vals, state)
         },
+        // Fetch var from state and copy + return
         AstNode::Variable (var) => {
             unwrap_variable(var, state)
         },
-        AstNode::Integer (val) => {
-            ExecuteOutput::Integer(val)
+        AstNode::Numeric (val) => {
+            ExecuteOutput::Numeric(val)
         },
         AstNode::Dictionary (dict) => {
             unwrap_dictionary(dict, state)
@@ -276,26 +304,26 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: ExecuteOutput) -> ExecuteOutput {
         },
         MonadicVerb::Generate => {
             let size = match rhs {
-                ExecuteOutput::Integer (int_val) => int_val,
+                ExecuteOutput::Numeric (Numeric::Int(int_val)) => int_val,
                 other => panic!("Cant handle {:?} in monadic generate op", other)
             };
 
-            let mut generated: Vec<i32> = Vec::new();
+            let mut generated: Vec<Numeric> = Vec::new();
 
             for i in 0..size {
-                generated.push(i);
+                generated.push(Numeric::Int(i as i64));
             }
 
-            ExecuteOutput::IntArray(generated)
+            ExecuteOutput::ArrayOfNumerics(generated)
         },
         MonadicVerb::Shape => {
             let expression_size = match rhs {
-                ExecuteOutput::IntArray (arr) => arr.len() as i32,
+                ExecuteOutput::ArrayOfNumerics (arr) => arr.len() as i64,
                 other => panic!("Cant handle {:?} in monadic shape", other)
             };
 
             // TODO: replace this with an outupt of int or array depending on shape of object
-            ExecuteOutput::Integer(expression_size)
+            ExecuteOutput::Numeric(Numeric::Int(expression_size))
         }
     }
 }
@@ -303,45 +331,50 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: ExecuteOutput) -> ExecuteOutput {
 fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     match (lhs, rhs) {
         // Adding two arrays
-        (ExecuteOutput::IntArray (lhs_array), ExecuteOutput::IntArray (rhs_array)) => execute_add_int_arrays(lhs_array, rhs_array),
+        (ExecuteOutput::ArrayOfNumerics (lhs_array), ExecuteOutput::ArrayOfNumerics (rhs_array)) => execute_add_int_arrays(lhs_array, rhs_array),
         // Adding an array + number
-        (ExecuteOutput::IntArray (int_array), ExecuteOutput::Integer (int_val))
-            | (ExecuteOutput::Integer (int_val), ExecuteOutput::IntArray(int_array)) => execute_add_int_array_to_int(int_array, int_val),
+        (ExecuteOutput::ArrayOfNumerics (int_array), ExecuteOutput::Numeric (int_val))
+            | (ExecuteOutput::Numeric (int_val), ExecuteOutput::ArrayOfNumerics(int_array)) => execute_add_int_array_to_int(int_array, int_val),
         (lhs_other, rhs_other) => panic!("Cannot add pair ({:?}, {:?})", lhs_other, rhs_other)
     }
 }
 
-fn execute_add_int_arrays(lhs_array: Vec<i32>, rhs_array: Vec<i32>) -> ExecuteOutput {
+fn execute_add_int_arrays(lhs_array: Vec<Numeric>, rhs_array: Vec<Numeric>) -> ExecuteOutput {
     if lhs_array.len() != rhs_array.len() {
         panic!("Cannot add arrays of two different sizes: {} vs {}", lhs_array.len(), rhs_array.len());
     }
 
     println!("Adding arrays: {:?} + {:?}", lhs_array, rhs_array);
 
-    let mut output: Vec<i32> = Vec::new();
+    let mut output: Vec<Numeric> = Vec::new();
 
     for i in 0..lhs_array.len() {
-        output.push(lhs_array.get(i).unwrap() + rhs_array.get(i).unwrap());
+        output.push(*lhs_array.get(i).unwrap() + *rhs_array.get(i).unwrap());
     }
 
     println!("Result of addition: {:?}", output);
-    ExecuteOutput::IntArray(output)
+    ExecuteOutput::ArrayOfNumerics(output)
 }
 
-fn execute_add_int_array_to_int(int_array:  Vec<i32>, int_val: i32) -> ExecuteOutput {
-    let mut output = int_array.into_iter().map(|x| x + int_val).collect();
+fn execute_add_int_array_to_int(int_array:  Vec<Numeric>, int_val: Numeric) -> ExecuteOutput {
+    let output = int_array.into_iter().map(|x| x + int_val).collect();
 
-    ExecuteOutput::IntArray(output)
+    ExecuteOutput::ArrayOfNumerics(output)
 }
 
 fn execute_replicate_array(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
-    let lhs_array = match lhs {
-        ExecuteOutput::IntArray (arr) => arr,
+    let lhs_array: Vec<Numeric> = match lhs {
+        ExecuteOutput::ArrayOfNumerics (arr) => arr,
         other => panic!("Array replication cant handle non array type {:?}", other)
     };
 
+    let lhs_array: Vec<i64> = lhs_array.into_iter().map(|x| match x {
+        Numeric::Int(x_int) => x_int,
+        Numeric::Float(x_float) => panic!("Cannot replicate with float values on lhs {:?}", x_float)
+    }).collect();
+
     let rhs_array = match rhs {
-        ExecuteOutput::IntArray (arr) => arr,
+        ExecuteOutput::ArrayOfNumerics (arr) => arr,
         other => panic!("Array replication cant handle non array type {:?}", other)
     };
 
@@ -351,7 +384,7 @@ fn execute_replicate_array(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOut
 
     println!("Replicating: {:?} / {:?}", lhs_array, rhs_array);
 
-    let mut output: Vec<i32> = Vec::new();
+    let mut output: Vec<Numeric> = Vec::new();
 
     for i in 0..lhs_array.len() {
         let multiplicity = lhs_array.get(i).unwrap();
@@ -360,47 +393,52 @@ fn execute_replicate_array(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOut
             panic!("Multiplicity {} is less than zero, not allowed in replicate command", multiplicity);
         }
 
-        for j in 0..*multiplicity {
+        for _ in 0..*multiplicity {
             output.push(rhs_array.get(i).unwrap().clone());
         }
     }
 
-    ExecuteOutput::IntArray(output)
+    ExecuteOutput::ArrayOfNumerics(output)
 }
 
 fn execute_array_greaterthan_int(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     let lhs_array = match lhs {
-        ExecuteOutput::IntArray (arr) => arr,
+        ExecuteOutput::ArrayOfNumerics (arr) => arr,
         other => panic!("Array greaterthan cant handle non array lhs type {:?}", other)
     };
 
     let rhs_integer = match rhs {
-        ExecuteOutput::Integer (val) => val,
-        other => panic!("Array greaterthan cant handle non integer rhs type {:?}", other)
+        ExecuteOutput::Numeric (val) => val,
+        other => panic!("Array greaterthan cant handle non Numeric rhs type {:?}", other)
     };
 
-    let mut output: Vec<i32> = Vec::new();
+    let mut output: Vec<Numeric> = Vec::new();
 
     for val in lhs_array {
         if val > rhs_integer {
-            output.push(1)
+            output.push(Numeric::Int(1))
         } else {
-            output.push(0)
+            output.push(Numeric::Int(0))
         }
     }
 
-    ExecuteOutput::IntArray(output)
+    ExecuteOutput::ArrayOfNumerics(output)
 }
 
 // For now only support vectors of integers
 fn unwrap_array(vals: Vec<AstNode>, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
-    let mut int_array: Vec<i32> = Vec::new();
+    let vals_clone = vals.clone();
+    let mut int_array: Vec<Numeric> = Vec::new();
+    let mut float_array: Vec<Numeric> = Vec::new();
     let mut dict_array: Vec<ExecuteOutput> = Vec::new();
 
     for val in vals {
-        let val_to_push = match val {
-            AstNode::Integer (int_val)  => {
-                int_array.push(int_val)
+        match val {
+            AstNode::Numeric (Numeric::Int(int_val))  => {
+                int_array.push(Numeric::Int(int_val))
+            },
+            AstNode::Numeric (Numeric::Float(float_val)) => {
+                float_array.push(Numeric::Float(float_val))
             },
             AstNode::Dictionary (dict_val) => {
                 dict_array.push(unwrap_dictionary(dict_val, state))
@@ -409,26 +447,34 @@ fn unwrap_array(vals: Vec<AstNode>, state: &mut HashMap<String, ExecuteOutput>) 
         };
     };
 
-    if int_array.len() > 0 && dict_array.len() > 0 {
-        panic!("Cannot have array of ints and dicts");
+    let sizes = vec![int_array.len(), float_array.len(), dict_array.len()];
+    let nonzero_sizes: Vec<usize> = sizes.into_iter().filter(|size| size > &0).collect();
+
+    if nonzero_sizes.len() > 1 {
+        panic!("Cannot have mixed array: {:?}", vals_clone);
     }
 
     if int_array.len() > 0 {
-        return ExecuteOutput::IntArray(int_array);
+        return ExecuteOutput::ArrayOfNumerics(int_array);
+    }
+
+    if float_array.len() > 0 {
+        return ExecuteOutput::ArrayOfNumerics(float_array);
     }
 
     // TODO: what if both arrays are size zero? then we return dict array by default?
-    return ExecuteOutput::DictArray(dict_array)
+    return ExecuteOutput::ArrayOfDicts(dict_array)
 }
 
 fn unwrap_dictionary(dict: HashMap<String, AstNode>, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
-    let mut dict_of_vec: HashMap<String, Vec<i32>> = HashMap::new();
-    let mut dict_of_int: HashMap<String, i32> = HashMap::new();
+    let mut dict_of_vec: HashMap<String, Vec<Numeric>> = HashMap::new();
+    let mut dict_of_int: HashMap<String, Numeric> = HashMap::new();
+    let mut dict_of_float: HashMap<String, Numeric> = HashMap::new();
 
     for (key, value) in dict {
         match execute_expression(value, state) {
-            ExecuteOutput::IntArray (arr) => { dict_of_vec.insert(key, arr); },
-            ExecuteOutput::Integer (int_val) => { dict_of_int.insert(key, int_val); },
+            ExecuteOutput::ArrayOfNumerics (arr) => { dict_of_vec.insert(key, arr); },
+            ExecuteOutput::Numeric (Numeric::Int(int_val)) => { dict_of_int.insert(key, Numeric::Int(int_val)); },
             other => panic!("Cant support dictionary with value {:?}", other)
         };
     }
@@ -448,16 +494,16 @@ fn unwrap_dictionary(dict: HashMap<String, AstNode>, state: &mut HashMap<String,
 // Given a variable name, unwrap its value, copy the data from state and return a new execute output
 fn unwrap_variable(var: String, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     let var_value = match state.get(&var).unwrap() {
-        ExecuteOutput::IntArray (arr) => {
-            let mut copied_var: Vec<i32> = Vec::new();
+        ExecuteOutput::ArrayOfNumerics (arr) => {
+            let mut copied_var: Vec<Numeric> = Vec::new();
             for val in arr {
                 copied_var.push(*val);
             }
 
-            ExecuteOutput::IntArray(copied_var)
+            ExecuteOutput::ArrayOfNumerics(copied_var)
         },
         ExecuteOutput::IntDictionary (dict) => {
-            let mut copied_dict: HashMap<String, i32> = HashMap::new();
+            let mut copied_dict: HashMap<String, Numeric> = HashMap::new();
 
             for (key, values) in dict {
                 copied_dict.insert(key.to_string(), *values);
@@ -465,8 +511,8 @@ fn unwrap_variable(var: String, state: &HashMap<String, ExecuteOutput>) -> Execu
 
             ExecuteOutput::IntDictionary(copied_dict)
         },
-        ExecuteOutput::Integer (int_val) => {
-            ExecuteOutput::Integer(int_val.clone())
+        ExecuteOutput::Numeric (int_val) => {
+            ExecuteOutput::Numeric(int_val.clone())
         },
         other => panic!("Cant handle variables of type {:?}", other)
     };

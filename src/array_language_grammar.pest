@@ -8,7 +8,7 @@ array = { "[" ~ (types ~ ",")* ~ types? ~ "]" }
 entry = { string ~ ":" ~ expression }
 dictionary = { "{" ~ (entry ~ ",")* ~ entry? ~ "}" }
 
-types = _{integer | decimal | dictionary}
+types = _{ decimal | integer | dictionary }
 
 verb = { "+" | "print" | "⍳" | "⍴" | "/" | ">" }
 

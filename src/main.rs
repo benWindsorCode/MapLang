@@ -208,21 +208,12 @@ fn run_program(program: Vec<AstNode>) {
         };
 
         match node {
-            AstNode::DyadicOp {verb, lhs, rhs} => {
-                println!("Executing dyadic Op {:?}", verb);
-                let lhs_node = *lhs;
-                let rhs_node = *rhs;
-                execute_diadic_op(verb, lhs_node, rhs_node, &state);
-            },
-            AstNode::MonadicOp {verb, rhs} => {
-                println!("Executing monadic Op {:?}", verb);
-                let rhs_node = *rhs;
-                execute_monadic_op(verb, rhs_node, &state);
-            },
             AstNode::GlobalVar {variable, expression} => {
                 state.insert(variable, execute_expression(*expression, &state));
             },
-            node_matched => panic!("Couldn't match node {:?}", node_matched)
+            any_other => {
+                execute_expression(any_other, &state);
+            }
         };
 
         println!("State is: {:?}", state);
@@ -249,14 +240,15 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: AstNode, state: &HashMap<String, E
         MonadicVerb::Print => {
             let val_to_print = execute_expression(rhs, state);
             println!("PRINT {:?}", val_to_print);
+
+            // TODO: perhaps an ExecuteOutput::Null type to represent ops with no output
             ExecuteOutput::IntArray(Vec::new())
         },
         MonadicVerb::Generate => {
             let expression = execute_expression(rhs, state);
             let size = match expression {
-                ExecuteOutput::IntArray (arr) => arr.get(0).unwrap().clone(),
-                ExecuteOutput::Integer (_) => 0,
-                other => panic!("Cant handle {:?} in monadic op", other)
+                ExecuteOutput::Integer (int_val) => int_val,
+                other => panic!("Cant handle {:?} in monadic generate op", other)
             };
 
             let mut generated: Vec<i32> = Vec::new();
@@ -273,11 +265,8 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: AstNode, state: &HashMap<String, E
                 other => panic!("Cant handle {:?} in monadic shape", other)
             };
 
-            let mut output: Vec<i32> = Vec::new();
-            output.push(expression_size);
-
             // TODO: replace this with an outupt of int or array depending on shape of object
-            ExecuteOutput::IntArray(output)
+            ExecuteOutput::Integer(expression_size)
         }
     }
 }
@@ -297,17 +286,7 @@ fn execute_expression(expression: AstNode, state: &HashMap<String, ExecuteOutput
             unwrap_array(vals, state)
         },
         AstNode::Variable (var) => {
-            let var_value = match state.get(&var).unwrap() {
-                ExecuteOutput::IntArray (arr) => arr,
-                other => panic!("Cant handle variables of non array type {:?}", other)
-            };
-
-            let mut copied_var: Vec<i32> = Vec::new();
-            for val in var_value {
-                copied_var.push(*val);
-            }
-
-            ExecuteOutput::IntArray(copied_var)
+            unwrap_variable(var, state)
         },
         AstNode::Integer (val) => {
             ExecuteOutput::Integer(val)
@@ -455,6 +434,32 @@ fn unwrap_dictionary(dict: HashMap<String, AstNode>, state: &HashMap<String, Exe
 
     // TODO: if both dict of vec and int are empty then we default to int dict is that nice?
     ExecuteOutput::IntDictionary(dict_of_int)
+}
+
+// Given a variable name, unwrap its value, copy the data from state and return a new execute output
+fn unwrap_variable(var: String, state: &HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+    let var_value = match state.get(&var).unwrap() {
+        ExecuteOutput::IntArray (arr) => {
+            let mut copied_var: Vec<i32> = Vec::new();
+            for val in arr {
+                copied_var.push(*val);
+            }
+
+            ExecuteOutput::IntArray(copied_var)
+        },
+        ExecuteOutput::IntDictionary (dict) => {
+            let mut copied_dict: HashMap<String, i32> = HashMap::new();
+
+            for (key, values) in dict {
+                copied_dict.insert(key.to_string(), *values);
+            }
+
+            ExecuteOutput::IntDictionary(copied_dict)
+        },
+        other => panic!("Cant handle variables of type {:?}", other)
+    };
+
+    var_value
 }
 
 fn main() {

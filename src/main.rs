@@ -215,33 +215,30 @@ fn run_program(program: Vec<AstNode>) {
     }
 }
 
-fn execute_diadic_op(verb: DyadicVerb, lhs: AstNode, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn execute_diadic_op(verb: DyadicVerb, lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     match verb {
         DyadicVerb::Add => {
-            execute_add_arrays(lhs, rhs, state)
+            execute_add_arrays(lhs, rhs)
         },
         DyadicVerb::Replicate => {
-            execute_replicate_array(lhs, rhs, state)
+            execute_replicate_array(lhs, rhs)
         },
         DyadicVerb::GreaterThan => {
-            execute_array_greaterthan_int(lhs, rhs, state)
+            execute_array_greaterthan_int(lhs, rhs)
         }
         other => panic!("Dyadic verb not implemented {:?}", other)
     }
 }
 
-fn execute_monadic_op(verb: MonadicVerb, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn execute_monadic_op(verb: MonadicVerb, rhs: ExecuteOutput) -> ExecuteOutput {
     match verb {
         MonadicVerb::Print => {
-            let val_to_print = execute_expression(rhs, state);
-            println!("PRINT {:?}", val_to_print);
+            println!("PRINT {:?}", rhs);
 
-            // TODO: perhaps an ExecuteOutput::Null type to represent ops with no output
-            ExecuteOutput::IntArray(Vec::new())
+            ExecuteOutput::Null
         },
         MonadicVerb::Generate => {
-            let expression = execute_expression(rhs, state);
-            let size = match expression {
+            let size = match rhs {
                 ExecuteOutput::Integer (int_val) => int_val,
                 other => panic!("Cant handle {:?} in monadic generate op", other)
             };
@@ -255,7 +252,7 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: AstNode, state: &mut HashMap<Strin
             ExecuteOutput::IntArray(generated)
         },
         MonadicVerb::Shape => {
-            let expression_size = match execute_expression(rhs, state) {
+            let expression_size = match rhs {
                 ExecuteOutput::IntArray (arr) => arr.len() as i32,
                 other => panic!("Cant handle {:?} in monadic shape", other)
             };
@@ -269,13 +266,13 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: AstNode, state: &mut HashMap<Strin
 fn execute_expression(expression: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     match expression {
         AstNode::DyadicOp {verb, lhs, rhs} => {
-            let lhs_node = *lhs;
-            let rhs_node = *rhs;
-            execute_diadic_op(verb, lhs_node, rhs_node, state)
+            let lhs = execute_expression(*lhs, state);
+            let rhs = execute_expression(*rhs, state);
+            execute_diadic_op(verb, lhs, rhs)
         },
         AstNode::MonadicOp {verb, rhs} => {
-            let rhs_node = *rhs;
-            execute_monadic_op(verb, rhs_node, state)
+            let rhs = execute_expression(*rhs, state);
+            execute_monadic_op(verb, rhs)
         },
         AstNode::Array (vals) => {
             unwrap_array(vals, state)
@@ -303,13 +300,13 @@ fn execute_expression(expression: AstNode, state: &mut HashMap<String, ExecuteOu
     }
 }
 
-fn execute_add_arrays(lhs: AstNode, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
-    let lhs_array = match execute_expression(lhs, state) {
+fn execute_add_arrays(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
+    let lhs_array = match lhs {
         ExecuteOutput::IntArray (arr) => arr,
         other => panic!("Array addition cant handle non array type {:?}", other)
     };
 
-    let rhs_array = match execute_expression(rhs, state) {
+    let rhs_array = match rhs {
         ExecuteOutput::IntArray (arr) => arr,
         other => panic!("Array addition cant handle non array type {:?}", other)
     };
@@ -330,13 +327,13 @@ fn execute_add_arrays(lhs: AstNode, rhs: AstNode, state: &mut HashMap<String, Ex
     ExecuteOutput::IntArray(output)
 }
 
-fn execute_replicate_array(lhs: AstNode, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
-    let lhs_array = match execute_expression(lhs, state) {
+fn execute_replicate_array(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
+    let lhs_array = match lhs {
         ExecuteOutput::IntArray (arr) => arr,
         other => panic!("Array replication cant handle non array type {:?}", other)
     };
 
-    let rhs_array = match execute_expression(rhs, state) {
+    let rhs_array = match rhs {
         ExecuteOutput::IntArray (arr) => arr,
         other => panic!("Array replication cant handle non array type {:?}", other)
     };
@@ -364,13 +361,13 @@ fn execute_replicate_array(lhs: AstNode, rhs: AstNode, state: &mut HashMap<Strin
     ExecuteOutput::IntArray(output)
 }
 
-fn execute_array_greaterthan_int(lhs: AstNode, rhs: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
-    let lhs_array = match execute_expression(lhs, state) {
+fn execute_array_greaterthan_int(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
+    let lhs_array = match lhs {
         ExecuteOutput::IntArray (arr) => arr,
         other => panic!("Array greaterthan cant handle non array lhs type {:?}", other)
     };
 
-    let rhs_integer = match execute_expression(rhs, state) {
+    let rhs_integer = match rhs {
         ExecuteOutput::Integer (val) => val,
         other => panic!("Array greaterthan cant handle non integer rhs type {:?}", other)
     };

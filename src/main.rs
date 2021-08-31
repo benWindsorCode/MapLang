@@ -7,6 +7,7 @@ use pest::error::Error;
 use std::fs;
 use std::collections::HashMap;
 use std::ops::Add;
+use std::iter::Sum;
 
 #[derive(Parser)]
 #[grammar = "array_language_grammar.pest"]
@@ -27,6 +28,11 @@ pub enum MonadicVerb {
     Shape
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum OperatorVerb {
+    Reduce
+}
+
 #[derive(Debug, Copy, PartialEq, Clone, PartialOrd)]
 pub enum Numeric {
     Int(i64),
@@ -42,6 +48,37 @@ impl Add for Numeric {
             (Numeric::Float(a), Numeric::Float(b)) => Numeric::Float(a + b),
             (self_unknown, other_unknown) => panic!("Cannot add numerics: {:?} + {:?}", self_unknown, other_unknown)
         }
+    }
+}
+
+impl<'a> Sum<Numeric> for Numeric {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Numeric>, 
+    {
+        let mut int_vals: Vec<i64> = Vec::new();
+        let mut float_vals: Vec<f64> = Vec::new();
+
+        for val in iter {
+            match val {
+                Numeric::Int (x) => int_vals.push(x),
+                Numeric::Float (x) => float_vals.push(x)
+            }
+        }
+
+        if int_vals.len() > 0 && float_vals.len() > 0 {
+            panic!("Cannot fold Numeric with float and ints");
+        }
+
+        if int_vals.len() > 0 {
+            return Numeric::Int(int_vals.into_iter().sum());
+        }
+
+        if float_vals.len() > 0 {
+            return Numeric::Float(float_vals.into_iter().sum())
+        }
+
+        panic!("Couldn't fold Numeric");
     }
 }
 
@@ -73,6 +110,11 @@ pub enum AstNode {
     },
     MonadicOp {
         verb: MonadicVerb,
+        rhs: Box<AstNode>
+    },
+    OperatorOp {
+        lhs_verb: DyadicVerb,
+        operator_verb: OperatorVerb,
         rhs: Box<AstNode>
     },
     Terms(Vec<AstNode>),
@@ -125,6 +167,18 @@ fn build_ast_from_expr(pair: pest::iterators::Pair<Rule>) -> AstNode {
             let rhs = build_ast_from_expr(rhs);
 
             parse_monadic_verb(verb, rhs)
+        },
+        Rule::operatorExpression => {
+            let mut pair = pair.into_inner();
+
+            let lhs_verb = pair.next().unwrap();
+            
+            let operator_verb = pair.next().unwrap();
+
+            let rhs = pair.next().unwrap();
+            let rhs = build_ast_from_expr(rhs);
+
+            parse_operator_verb(lhs_verb, operator_verb, rhs)
         },
         Rule::assignment => {
             let mut pair = pair.into_inner();
@@ -200,12 +254,16 @@ fn parse_dyadic_verb(lhs: AstNode, pair: pest::iterators::Pair<Rule>, rhs: AstNo
     AstNode::DyadicOp {
         lhs: Box::new(lhs),
         rhs: Box::new(rhs),
-        verb: match pair.as_str() {
-            "+" => DyadicVerb::Add,
-            "/" => DyadicVerb::Replicate,
-            ">" => DyadicVerb::GreaterThan,
-            _ => panic!("Verb not implemented")
-        }
+        verb: dyadic_verb_from_str(pair.as_str())
+    }
+}
+
+fn dyadic_verb_from_str(verb_str: &str) -> DyadicVerb {
+    match verb_str {
+        "+" => DyadicVerb::Add,
+        "/" => DyadicVerb::Replicate,
+        ">" => DyadicVerb::GreaterThan,
+        _ => panic!("Verb not implemented")
     }
 }
 
@@ -218,6 +276,17 @@ fn parse_monadic_verb(pair: pest::iterators::Pair<Rule>, rhs: AstNode) -> AstNod
             "⍴" => MonadicVerb::Shape,
             other => panic!("Verb '{}' not implemented", other)
         }
+    }
+}
+
+fn parse_operator_verb(lhs_verb_pair: pest::iterators::Pair<Rule>, operator_verb_pair: pest::iterators::Pair<Rule>, rhs: AstNode) -> AstNode {
+    AstNode::OperatorOp {
+        lhs_verb: dyadic_verb_from_str(lhs_verb_pair.as_str()),
+        operator_verb: match operator_verb_pair.as_str() {
+            "/" => OperatorVerb::Reduce,
+            other => panic!("Operator Verb '{}' not implemented", other)
+        },
+        rhs: Box::new(rhs)
     }
 }
 
@@ -251,6 +320,10 @@ fn execute_expression(expression: AstNode, state: &mut HashMap<String, ExecuteOu
         AstNode::MonadicOp {verb, rhs} => {
             let rhs = execute_expression(*rhs, state);
             execute_monadic_op(verb, rhs)
+        },
+        AstNode::OperatorOp {lhs_verb, operator_verb, rhs} => {
+            let rhs = execute_expression(*rhs, state);
+            execute_operator_op(lhs_verb, operator_verb, rhs)
         },
         // Unwrap + compute the inner values of the array
         AstNode::Array (vals) => {
@@ -325,6 +398,31 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: ExecuteOutput) -> ExecuteOutput {
             // TODO: replace this with an outupt of int or array depending on shape of object
             ExecuteOutput::Numeric(Numeric::Int(expression_size))
         }
+    }
+}
+
+fn execute_operator_op(lhs_verb: DyadicVerb, operator_verb: OperatorVerb, rhs: ExecuteOutput) -> ExecuteOutput {
+    match operator_verb {
+        OperatorVerb::Reduce => {
+            execute_reduce_dyadic_lhs(lhs_verb, rhs)
+        },
+        other => panic!("Operator verb not implemented {:?}", other)
+    }
+}
+
+fn execute_reduce_dyadic_lhs(lhs_verb: DyadicVerb, rhs: ExecuteOutput) -> ExecuteOutput {
+    match lhs_verb {
+        DyadicVerb::Add => reduce_dyadic_add(rhs),
+        other => panic!("Cannot reduce over dyadic verb: {:?}", other)
+    }
+}
+
+fn reduce_dyadic_add(rhs: ExecuteOutput) -> ExecuteOutput {
+    match rhs {
+        ExecuteOutput::ArrayOfNumerics (arr) => {
+            ExecuteOutput::Numeric(arr.into_iter().sum())
+        },
+        other => panic!("Cannot reduce add over {:?}", other)
     }
 }
 

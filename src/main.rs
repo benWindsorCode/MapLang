@@ -215,10 +215,47 @@ fn run_program(program: Vec<AstNode>) {
     }
 }
 
+fn execute_expression(expression: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+    match expression {
+        AstNode::DyadicOp {verb, lhs, rhs} => {
+            let lhs = execute_expression(*lhs, state);
+            let rhs = execute_expression(*rhs, state);
+            execute_diadic_op(verb, lhs, rhs)
+        },
+        AstNode::MonadicOp {verb, rhs} => {
+            let rhs = execute_expression(*rhs, state);
+            execute_monadic_op(verb, rhs)
+        },
+        AstNode::Array (vals) => {
+            unwrap_array(vals, state)
+        },
+        AstNode::Variable (var) => {
+            unwrap_variable(var, state)
+        },
+        AstNode::Integer (val) => {
+            ExecuteOutput::Integer(val)
+        },
+        AstNode::Dictionary (dict) => {
+            unwrap_dictionary(dict, state)
+        },
+        AstNode::GlobalVar {variable, expression} => {
+            // TODO: is this nice? it stops a mutable borrow of the state twice
+            //        however what if the copy_state is updated inside execute_expression
+            //        we shoudl deal with that here somehow?
+            let mut copy_state = state.clone();
+            state.insert(variable, execute_expression(*expression, &mut copy_state));
+
+            // TODO Merge the inner and outer states? only needed once inner executions can modify state
+            ExecuteOutput::Null
+        },
+        other_matched => panic!("Couldn't match node {:?} in execute expression", other_matched)
+    }
+}
+
 fn execute_diadic_op(verb: DyadicVerb, lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     match verb {
         DyadicVerb::Add => {
-            execute_add_arrays(lhs, rhs)
+            execute_add(lhs, rhs)
         },
         DyadicVerb::Replicate => {
             execute_replicate_array(lhs, rhs)
@@ -263,54 +300,18 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: ExecuteOutput) -> ExecuteOutput {
     }
 }
 
-fn execute_expression(expression: AstNode, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
-    match expression {
-        AstNode::DyadicOp {verb, lhs, rhs} => {
-            let lhs = execute_expression(*lhs, state);
-            let rhs = execute_expression(*rhs, state);
-            execute_diadic_op(verb, lhs, rhs)
-        },
-        AstNode::MonadicOp {verb, rhs} => {
-            let rhs = execute_expression(*rhs, state);
-            execute_monadic_op(verb, rhs)
-        },
-        AstNode::Array (vals) => {
-            unwrap_array(vals, state)
-        },
-        AstNode::Variable (var) => {
-            unwrap_variable(var, state)
-        },
-        AstNode::Integer (val) => {
-            ExecuteOutput::Integer(val)
-        },
-        AstNode::Dictionary (dict) => {
-            unwrap_dictionary(dict, state)
-        },
-        AstNode::GlobalVar {variable, expression} => {
-            // TODO: is this nice? it stops a mutable borrow of the state twice
-            //        however what if the copy_state is updated inside execute_expression
-            //        we shoudl deal with that here somehow?
-            let mut copy_state = state.clone();
-            state.insert(variable, execute_expression(*expression, &mut copy_state));
-
-            // TODO Merge the inner and outer states? only needed once inner executions can modify state
-            ExecuteOutput::Null
-        },
-        other_matched => panic!("Couldn't match node {:?} in execute expression", other_matched)
+fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
+    match (lhs, rhs) {
+        // Adding two arrays
+        (ExecuteOutput::IntArray (lhs_array), ExecuteOutput::IntArray (rhs_array)) => execute_add_int_arrays(lhs_array, rhs_array),
+        // Adding an array + number
+        (ExecuteOutput::IntArray (int_array), ExecuteOutput::Integer (int_val))
+            | (ExecuteOutput::Integer (int_val), ExecuteOutput::IntArray(int_array)) => execute_add_int_array_to_int(int_array, int_val),
+        (lhs_other, rhs_other) => panic!("Cannot add pair ({:?}, {:?})", lhs_other, rhs_other)
     }
 }
 
-fn execute_add_arrays(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
-    let lhs_array = match lhs {
-        ExecuteOutput::IntArray (arr) => arr,
-        other => panic!("Array addition cant handle non array type {:?}", other)
-    };
-
-    let rhs_array = match rhs {
-        ExecuteOutput::IntArray (arr) => arr,
-        other => panic!("Array addition cant handle non array type {:?}", other)
-    };
-
+fn execute_add_int_arrays(lhs_array: Vec<i32>, rhs_array: Vec<i32>) -> ExecuteOutput {
     if lhs_array.len() != rhs_array.len() {
         panic!("Cannot add arrays of two different sizes: {} vs {}", lhs_array.len(), rhs_array.len());
     }
@@ -324,6 +325,12 @@ fn execute_add_arrays(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     }
 
     println!("Result of addition: {:?}", output);
+    ExecuteOutput::IntArray(output)
+}
+
+fn execute_add_int_array_to_int(int_array:  Vec<i32>, int_val: i32) -> ExecuteOutput {
+    let mut output = int_array.into_iter().map(|x| x + int_val).collect();
+
     ExecuteOutput::IntArray(output)
 }
 

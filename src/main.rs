@@ -393,7 +393,6 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: ExecuteOutput) -> ExecuteOutput {
             // TODO: what should 'shape' of array of dicts and dicts be?
             let expression_size = match rhs {
                 ExecuteOutput::Array (arr) => arr.len() as i64,
-                ExecuteOutput::Array (arr) => arr.len() as i64,
                 other => panic!("Cant handle {:?} in monadic shape", other)
             };
 
@@ -422,14 +421,9 @@ fn execute_reduce_dyadic_lhs(lhs_verb: DyadicVerb, rhs: ExecuteOutput) -> Execut
 fn reduce_dyadic_add(rhs: ExecuteOutput) -> ExecuteOutput {
     match rhs {
         ExecuteOutput::Array (arr) => {
-            let first = arr.get(0).unwrap();
+            let first = arr.get(0).unwrap().clone();
 
-            // TODO: implement other types of array reduction
-            let mut total = match first {
-                ExecuteOutput::Numeric (Numeric::Float(x)) => ExecuteOutput::Numeric(Numeric::Float(0.0)),
-                ExecuteOutput::Numeric (Numeric::Int(x)) => ExecuteOutput::Numeric(Numeric::Int(0)),
-                other => panic!("Cannot handle dyadic reduce over array of {:?}", other)
-            };
+            let mut total = initial_reduce_value(first);
 
             for val in arr {
                 total = execute_add(total, val);
@@ -439,6 +433,38 @@ fn reduce_dyadic_add(rhs: ExecuteOutput) -> ExecuteOutput {
         },
         other => panic!("Cannot reduce add over {:?}", other)
     }
+}
+
+fn initial_reduce_value(template: ExecuteOutput) -> ExecuteOutput {
+    let initial = match template {
+        ExecuteOutput::Numeric (Numeric::Float(_)) => ExecuteOutput::Numeric(Numeric::Float(0.0)),
+        ExecuteOutput::Numeric (Numeric::Int(_)) => ExecuteOutput::Numeric(Numeric::Int(0)),
+        ExecuteOutput::Array (arr) => initial_reduce_value_array(arr),
+        ExecuteOutput::Dictionary (dict) => initial_reduce_value_dict(dict),
+        other => panic!("Cannot handle dyadic reduce over array of {:?}", other)
+    };
+
+    initial
+}
+
+fn initial_reduce_value_array(template: Vec<ExecuteOutput>) -> ExecuteOutput {
+    let mut initial: Vec<ExecuteOutput> = Vec::new();
+
+    for val in template {
+        initial.push(initial_reduce_value(val));
+    }
+
+    ExecuteOutput::Array(initial)
+}
+
+fn initial_reduce_value_dict(template: HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+    let mut initial: HashMap<String, ExecuteOutput> = HashMap::new();
+
+    for (key, val) in template {
+        initial.insert(key, initial_reduce_value(val));
+    }
+
+    ExecuteOutput::Dictionary(initial)
 }
 
 fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {

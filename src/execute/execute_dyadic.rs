@@ -4,6 +4,7 @@ use super::dyadic_add::execute_add;
 use super::dyadic_divide::execute_divide;
 use super::dyadic_greaterthan::execute_greaterthan;
 use super::dyadic_replicate::execute_replicate;
+use super::dyadic_multiply::execute_multiply;
 
 
 pub fn execute_dyadic_op(verb: DyadicVerb, lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
@@ -14,6 +15,9 @@ pub fn execute_dyadic_op(verb: DyadicVerb, lhs: ExecuteOutput, rhs: ExecuteOutpu
         DyadicVerb::Divide => {
             execute_divide(lhs, rhs)
         },
+        DyadicVerb::Multiply => {
+            execute_multiply(lhs, rhs)
+        }
         DyadicVerb::Replicate => {
             execute_replicate(lhs, rhs)
         },

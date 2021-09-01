@@ -18,7 +18,11 @@ use std::collections::HashMap;
 fn parse(source: &str) -> Result<Vec<AstNode>, Error<Rule>> {
     let mut ast = vec![];
 
+    // Recursively build up tree to be executed
     let pairs = ArrayLanguageParser::parse(Rule::program, source)?;
+
+    println!("{:?}", pairs);
+
     for pair in pairs {
         match pair.as_rule() {
             Rule::expression => {
@@ -34,6 +38,7 @@ fn parse(source: &str) -> Result<Vec<AstNode>, Error<Rule>> {
 fn run_program(program: Vec<AstNode>) {
     let mut state: HashMap<String, ExecuteOutput> = HashMap::new();
 
+    // run over nodes 'line by line' executing each line
     for line in program {
         let node = match line {
             AstNode::Node(inner) => {
@@ -44,21 +49,11 @@ fn run_program(program: Vec<AstNode>) {
 
         // TODO: should we handle the assignment of variables out here instead? separately, then pass an immutable state in...
         execute_expression(node, &mut state);
-
-        println!("State is: {:?}", state);
     }
 }
 
 fn main() {
     let unparsed_file = fs::read_to_string("test_program_2.txt").expect("cannot read file");
-
-    println!("Raw file:\n{:?}", unparsed_file);
-
-    let file = ArrayLanguageParser::parse(Rule::program, &unparsed_file)
-        .expect("unsuccessful parse")
-        .next().unwrap();
-
-    println!("{:?}", file);
 
     let out = parse(&unparsed_file).unwrap();
 

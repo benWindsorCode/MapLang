@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use super::structures::*;
 
 #[derive(Parser)]
-#[grammar = "array_language_grammar.pest"]
+#[grammar = "language_grammar.pest"]
 pub struct ArrayLanguageParser;
 
 pub fn build_ast_from_expr(pair: pest::iterators::Pair<Rule>) -> AstNode {
@@ -61,7 +61,7 @@ pub fn build_ast_from_expr(pair: pest::iterators::Pair<Rule>) -> AstNode {
                 _ => AstNode::Terms(terms)
             }
         },
-        unknown_expr => panic!("Not implemented: {:?}", unknown_expr)
+        unknown_expr => panic!("Not implemented: {:?}, details: {:?}", unknown_expr, pair)
     }
 }
 
@@ -126,6 +126,7 @@ fn dyadic_verb_from_str(verb_str: &str) -> DyadicVerb {
         "/" => DyadicVerb::Replicate,
         ">" => DyadicVerb::GreaterThan,
         "÷" => DyadicVerb::Divide,
+        "×" => DyadicVerb::Multiply,
         other => panic!("Dyadic Verb {:?} not implemented", other)
     }
 }

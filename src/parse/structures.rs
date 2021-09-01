@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ops::Add;
+use std::ops::{Add, Mul};
 use std::iter::Sum;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -34,6 +34,7 @@ pub enum AstNode {
 pub enum DyadicVerb {
     Add,
     Divide,
+    Multiply,
     Replicate,
     GreaterThan
 }
@@ -64,6 +65,18 @@ impl Add for Numeric {
             (Numeric::Int(a), Numeric::Int(b)) => Numeric::Int(a + b),
             (Numeric::Float(a), Numeric::Float(b)) => Numeric::Float(a + b),
             (self_unknown, other_unknown) => panic!("Cannot add numerics: {:?} + {:?}", self_unknown, other_unknown)
+        }
+    }
+}
+
+impl Mul for Numeric {
+    type Output = Numeric;
+
+    fn mul(self, other: Numeric) -> Numeric {
+        match (self, other) {
+            (Numeric::Int(a), Numeric::Int(b)) => Numeric::Int(a * b),
+            (Numeric::Float(a), Numeric::Float(b)) => Numeric::Float(a * b),
+            (self_unknown, other_unknown) => panic!("Cannot multiply numerics: {:?} + {:?}", self_unknown, other_unknown)
         }
     }
 }

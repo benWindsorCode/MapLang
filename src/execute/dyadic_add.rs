@@ -19,7 +19,7 @@ pub fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
 
 fn execute_add_arrays(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<ExecuteOutput>) -> ExecuteOutput {
     if lhs_array.len() != rhs_array.len() {
-        panic!("Cannot add dict arrays of different lengths {:?} vs {:?}", lhs_array.len(), rhs_array.len());
+        panic!("Cannot add arrays of different lengths {:?} vs {:?}", lhs_array.len(), rhs_array.len());
     }
 
     let mut output: Vec<ExecuteOutput> = Vec::new();

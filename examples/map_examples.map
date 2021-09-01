@@ -1,0 +1,27 @@
+/* Create a map */
+map <- { 'age': 27, 'salary': 300, 'hourly': 12.4 }
+print map
+
+/* Access map values by name */
+age <- map.'age'
+print age
+
+/* Create an array of maps */
+maps <- [ { 'age': 27, 'salary': 300, 'hourly': 12.4 }, { 'age': 29, 'salary': 350, 'hourly': 12.9 } ]
+print maps
+
+/* Access map values by name, producing an array of those values */
+ages <- maps.'age'
+print ages
+
+/* Perform reduction operation over array of maps, producing one total sum map */
+total <- +/ maps
+print total
+
+/* Similar to the examples/array_examples.map example, compute the average values, outputting a map */
+avg <- (+/ maps) ÷ ⍴ maps
+print avg
+
+/* Compute the average of just one field */
+avg_salary <- (+/ maps.'salary') ÷ ⍴ maps.'salary'
+print avg_salary

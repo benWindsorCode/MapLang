@@ -15,7 +15,12 @@ employee_data <- [ { 'salary' : 500, 'age' : 22 }, { 'salary' : 1000, 'age' : 25
 
 This language aims to allow for APL style manipulation of map data.
 
-# Example: employee average values
+# Example Code
+See the 'examples/' directory for code examples.
+
+A few examples documented in this readme also to give a flavor.
+
+## Example: employee average values
 The following program computes the average values of employee data (those familiar with APL will recognise the pattern):
 ```
 employee_data <- [ { 'salary' : 500, 'age' : 22 }, { 'salary' : 1000, 'age' : 25 }, { 'salary' : 2400, 'age' : 23 } ]
@@ -29,7 +34,7 @@ PRINT Map({"age": Numeric(Float(23.333333333333332)), "salary": Numeric(Float(13
 
 A short explanation of the above program is that on the left of the divide, performing a reduciton of '+' over the structures, to produce a total structure, then dividing this by the right hand side value which is the number of items in the employee_data array.
 
-# Example: extract values from array of dictionaries
+## Example: extract values from array of dictionaries
 A common action is to run some computation on some specific fields of dictionaries in aggregate:
 ```
 employee_data <- [ { 'salary' : 500, 'age' : 22 }, { 'salary' : 1000, 'age' : 25 }, { 'salary' : 2400, 'age' : 23 } ]

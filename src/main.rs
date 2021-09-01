@@ -265,7 +265,7 @@ fn dyadic_verb_from_str(verb_str: &str) -> DyadicVerb {
         "/" => DyadicVerb::Replicate,
         ">" => DyadicVerb::GreaterThan,
         "÷" => DyadicVerb::Divide,
-        other => panic!("Verb {:?} not implemented", other)
+        other => panic!("Dyadic Verb {:?} not implemented", other)
     }
 }
 
@@ -276,7 +276,7 @@ fn parse_monadic_verb(pair: pest::iterators::Pair<Rule>, rhs: AstNode) -> AstNod
             "print" => MonadicVerb::Print,
             "⍳" => MonadicVerb::Generate,
             "⍴" => MonadicVerb::Shape,
-            other => panic!("Verb '{}' not implemented", other)
+            other => panic!("Monadic Verb '{}' not implemented", other)
         }
     }
 }
@@ -395,8 +395,10 @@ fn execute_monadic_op(verb: MonadicVerb, rhs: ExecuteOutput) -> ExecuteOutput {
             ExecuteOutput::ArrayOfNumerics(generated)
         },
         MonadicVerb::Shape => {
+            // TODO: what should 'shape' of array of dicts and dicts be?
             let expression_size = match rhs {
                 ExecuteOutput::ArrayOfNumerics (arr) => arr.len() as i64,
+                ExecuteOutput::ArrayOfDicts (arr) => arr.len() as i64,
                 other => panic!("Cant handle {:?} in monadic shape", other)
             };
 

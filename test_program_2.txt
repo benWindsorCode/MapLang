@@ -3,3 +3,4 @@ test2 <- [ { 'age':300, 'size':12 }, {'age' :200, 'size':34 }]
 test3 <- test + test2
 print test3
 print [0,1] / test3
+print (⍴ test3)

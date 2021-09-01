@@ -10,7 +10,7 @@ dictionary = { "{" ~ (entry ~ ",")* ~ entry? ~ "}" }
 
 types = _{ decimal | integer | dictionary | array }
 
-verb = { "+" | "÷" | "print" | "⍳" | "⍴" | "/" | ">" }
+verb = { "+" | "÷" | "print" | "⍳" | "⍴" | "/" | ">" | "¨" }
 
 assignment = { variable ~ "<-" ~ expression }
 expression = { assignment | operatorExpression | monadicExpression | dyadicExpression | string | terms }

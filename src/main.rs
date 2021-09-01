@@ -92,8 +92,8 @@ pub enum ExecuteOutput {
     ArrayOfDicts(Vec<ExecuteOutput>),
     // Dict of int arrays
     Dictionary(HashMap<String, Vec<Numeric>>),
-    // Dict of ints
-    IntDictionary(HashMap<String, Numeric>),
+    // Dict of int or float
+    DictionaryOfNumerics(HashMap<String, Numeric>),
     // Numeric int or float
     Numeric(Numeric),
     Null
@@ -433,11 +433,13 @@ fn reduce_dyadic_add(rhs: ExecuteOutput) -> ExecuteOutput {
 
 fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     match (lhs, rhs) {
-        // Adding two arrays
+        // Adding two arrays of numbers
         (ExecuteOutput::ArrayOfNumerics (lhs_array), ExecuteOutput::ArrayOfNumerics (rhs_array)) => execute_add_int_arrays(lhs_array, rhs_array),
         // Adding an array + number
         (ExecuteOutput::ArrayOfNumerics (int_array), ExecuteOutput::Numeric (int_val))
             | (ExecuteOutput::Numeric (int_val), ExecuteOutput::ArrayOfNumerics(int_array)) => execute_add_int_array_to_int(int_array, int_val),
+        // Adding two arrays of dicts
+        (ExecuteOutput::ArrayOfDicts (lhs_array), ExecuteOutput::ArrayOfDicts (rhs_array)) => execute_add_dict_arrays(lhs_array, rhs_array),
         (lhs_other, rhs_other) => panic!("Cannot add pair ({:?}, {:?})", lhs_other, rhs_other)
     }
 }
@@ -468,7 +470,7 @@ fn execute_divide_array_by_numeric(lhs_array: Vec<Numeric>, numeric: Numeric) ->
 
     let mut output: Vec<Numeric> = Vec::new();
 
-    // TODO: is there a way to do this with float_vals.into_iter().map(...), couldn't get denominator to work
+    // TODO: is there a way to do this with float_vals.into_iter().map(...), couldn't get denominator to come into scope of lambda
     for val in float_vals {
         output.push(Numeric::Float(val / denominator));
     }
@@ -488,7 +490,7 @@ fn execute_divide_numeric_by_numeric(lhs_numeric: Numeric, rhs_numeric: Numeric)
     };
 
     let result: f64 = lhs_float / rhs_float;
-    
+
     ExecuteOutput::Numeric(Numeric::Float(result))
 }
 
@@ -507,6 +509,44 @@ fn execute_add_int_arrays(lhs_array: Vec<Numeric>, rhs_array: Vec<Numeric>) -> E
 
     println!("Result of addition: {:?}", output);
     ExecuteOutput::ArrayOfNumerics(output)
+}
+
+fn execute_add_dict_arrays(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<ExecuteOutput>) -> ExecuteOutput {
+    if lhs_array.len() != rhs_array.len() {
+        panic!("Cannot add dict arrays of different lengths {:?} vs {:?}", lhs_array.len(), rhs_array.len());
+    }
+
+    let mut output: Vec<ExecuteOutput> = Vec::new();
+    
+    for i in 0..lhs_array.len() {
+        let lhs_val = lhs_array.get(i).unwrap().clone();
+        let rhs_val = rhs_array.get(i).unwrap().clone();
+
+        match (lhs_val, rhs_val) {
+            (ExecuteOutput::DictionaryOfNumerics (lhs_dict), ExecuteOutput::DictionaryOfNumerics (rhs_dict)) => { 
+                let sum = add_dicts_of_numerics(lhs_dict, rhs_dict);
+                output.push(ExecuteOutput::DictionaryOfNumerics(sum)); 
+            },
+            (lhs_other, rhs_other) => panic!("Cannot add dict array values {:?} vs {:?}", lhs_other, rhs_other)
+        }
+    }
+
+    ExecuteOutput::ArrayOfDicts(output)
+}
+
+fn add_dicts_of_numerics(lhs_dict: HashMap<String, Numeric>, rhs_dict: HashMap<String, Numeric>) -> HashMap<String, Numeric> {
+    if lhs_dict.len() != rhs_dict.len() {
+        panic!("Cannot add dicts of different lengths: {:?} vs {:?}", lhs_dict.len(), rhs_dict.len());
+    }
+
+    let mut output: HashMap<String, Numeric> = HashMap::new();
+
+    for (key, value) in lhs_dict {
+        let rhs_value = *rhs_dict.get(&key).unwrap();
+        output.insert(key, value + rhs_value);
+    }
+
+    output
 }
 
 fn execute_add_int_array_to_int(int_array:  Vec<Numeric>, int_val: Numeric) -> ExecuteOutput {
@@ -641,7 +681,7 @@ fn unwrap_dictionary(dict: HashMap<String, AstNode>, state: &mut HashMap<String,
     }
 
     // TODO: if both dict of vec and int are empty then we default to int dict is that nice?
-    ExecuteOutput::IntDictionary(dict_of_int)
+    ExecuteOutput::DictionaryOfNumerics(dict_of_int)
 }
 
 // Given a variable name, unwrap its value, copy the data from state and return a new execute output
@@ -655,14 +695,17 @@ fn unwrap_variable(var: String, state: &HashMap<String, ExecuteOutput>) -> Execu
 
             ExecuteOutput::ArrayOfNumerics(copied_var)
         },
-        ExecuteOutput::IntDictionary (dict) => {
+        ExecuteOutput::ArrayOfDicts (dict) => {
+            ExecuteOutput::ArrayOfDicts(dict.clone())
+        },
+        ExecuteOutput::DictionaryOfNumerics (dict) => {
             let mut copied_dict: HashMap<String, Numeric> = HashMap::new();
 
             for (key, values) in dict {
                 copied_dict.insert(key.to_string(), *values);
             }
 
-            ExecuteOutput::IntDictionary(copied_dict)
+            ExecuteOutput::DictionaryOfNumerics(copied_dict)
         },
         ExecuteOutput::Numeric (int_val) => {
             ExecuteOutput::Numeric(int_val.clone())

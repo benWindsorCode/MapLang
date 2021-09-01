@@ -1,3 +1,4 @@
-salaries <- [ 100, 300 ]
-avg <- (+/ salaries) ÷ (⍴ salaries)
-print avg
+test <- [ { 'age':400 }, {'age' :200 }]
+test2 <- [ { 'age':300 }, {'age' :200 }]
+test3 <- test + test2
+print test3

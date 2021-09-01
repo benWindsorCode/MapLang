@@ -12,7 +12,7 @@ pub fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
         // Adding two numbers
         (ExecuteOutput::Numeric (lhs_val), ExecuteOutput::Numeric (rhs_val)) => ExecuteOutput::Numeric(lhs_val + rhs_val),
         // Adding two dicts
-        (ExecuteOutput::Map (lhs_dict), ExecuteOutput::Map (rhs_dict)) => execute_add_dicts(lhs_dict, rhs_dict),
+        (ExecuteOutput::Map (lhs_map), ExecuteOutput::Map (rhs_map)) => execute_add_dicts(lhs_map, rhs_map),
         (lhs_other, rhs_other) => panic!("Cannot add pair ({:?}, {:?})", lhs_other, rhs_other)
     }
 }
@@ -34,15 +34,15 @@ fn execute_add_arrays(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<ExecuteOutpu
     ExecuteOutput::Array(output)
 }
 
-fn execute_add_dicts(lhs_dict: HashMap<String, ExecuteOutput>, rhs_dict: HashMap<String, ExecuteOutput>) -> ExecuteOutput {
-    if lhs_dict.len() != rhs_dict.len() {
-        panic!("Cannot add dicts of different lengths: {:?} vs {:?}", lhs_dict.len(), rhs_dict.len());
+fn execute_add_dicts(lhs_map: HashMap<String, ExecuteOutput>, rhs_map: HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+    if lhs_map.len() != rhs_map.len() {
+        panic!("Cannot add dicts of different lengths: {:?} vs {:?}", lhs_map.len(), rhs_map.len());
     }
 
     let mut output: HashMap<String, ExecuteOutput> = HashMap::new();
 
-    for (key, value) in lhs_dict {
-        let rhs_value = rhs_dict.get(&key).unwrap().clone();
+    for (key, value) in lhs_map {
+        let rhs_value = rhs_map.get(&key).unwrap().clone();
         output.insert(key, execute_add(value, rhs_value));
     }
 

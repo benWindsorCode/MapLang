@@ -7,7 +7,7 @@ pub fn execute_divide(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
         // Divide an array by an array
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Array (rhs_array)) => execute_divide_array_by_array(lhs_array, rhs_array),
         // Divide a dictionary by a number
-        (ExecuteOutput::Map (lhs_dict), ExecuteOutput::Numeric (rhs_numeric)) => execute_divide_dict_by_numeric(lhs_dict, rhs_numeric),
+        (ExecuteOutput::Map (lhs_map), ExecuteOutput::Numeric (rhs_numeric)) => execute_divide_dict_by_numeric(lhs_map, rhs_numeric),
         // Divide an array by a number
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Numeric (numeric)) => execute_divide_array_by_numeric(lhs_array, numeric),
         // Divide a number by a number
@@ -46,12 +46,12 @@ fn execute_divide_array_by_array(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<E
     ExecuteOutput::Array(output)
 }
 
-fn execute_divide_dict_by_numeric(lhs_dict: HashMap<String, ExecuteOutput>, numeric: Numeric) -> ExecuteOutput {
+fn execute_divide_dict_by_numeric(lhs_map: HashMap<String, ExecuteOutput>, numeric: Numeric) -> ExecuteOutput {
     let mut output: HashMap<String, ExecuteOutput> = HashMap::new();
 
     // Wrap numeric in an ExecuteOutput so it can be passed back into calculate_divide
     let numeric = ExecuteOutput::Numeric(numeric);
-    for (key, val) in lhs_dict {
+    for (key, val) in lhs_map {
         output.insert(key, execute_divide(val, numeric.clone()));
     }
 

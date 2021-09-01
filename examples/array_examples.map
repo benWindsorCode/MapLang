@@ -1,0 +1,50 @@
+/* Create two arrays of ints */
+a <- [1, 2, 3]
+b <- [4, 5, 9]
+
+/* Add the values */
+print a + b
+
+/* Multiply the values */
+print a × b
+
+/* Sum the array (by reducing the + operator over it) and print */
+/* note: currently reduction must first be assigned to a variable before printing */
+sum <- +/ a
+print sum
+
+/* Get size of the array (⍴ = ctrl + r, on APL keyboard) */
+size <- ⍴ a
+print size
+
+/* Generate range of values (⍳ = ctral + i, on APL keyboard) */
+range <- ⍳ 5
+print range
+
+/* Replicate the array, so each element appears twice */
+replicated <- [2, 2, 2] / b
+print replicated 
+
+/* Filter to keep only second element on array, using replicate with 0 and 1 to mark include or exclude */
+filtered <- [0, 1, 0] / b
+print filtered
+
+/* Mark elements greater than 4 */
+greater <- b > 4
+print greater
+
+/* Use replicate to filter down to elements greater than 4 */
+greater_than_4 <- (b > 4) / b
+print greater_than_4
+
+/* Calculate the mean of an array by summing then dividing by size (÷ = ctral + =, on APL keyboard) */
+mean <- (+/b) ÷ ⍴ b
+print mean
+
+/* Get second element of array by index */
+second <- b.1
+print second
+
+/* Get multiple elements of array (with repetition) by multi-indexing */
+many <- b.[1, 1, 0, 1, 2]
+print many

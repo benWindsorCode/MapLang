@@ -7,7 +7,7 @@ pub fn execute_access(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Array (rhs_array)) => execute_access_array_with_array(lhs_array, rhs_array),
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::String (rhs_string)) => execute_access_array_with_string(lhs_array, rhs_string),
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Numeric (rhs_numeric)) => execute_access_array_with_numeric(lhs_array, rhs_numeric),
-        (ExecuteOutput::Map (lhs_dict), ExecuteOutput::String (rhs_string)) => execute_access_dict_with_string(lhs_dict, rhs_string),
+        (ExecuteOutput::Map (lhs_map), ExecuteOutput::String (rhs_string)) => execute_access_dict_with_string(lhs_map, rhs_string),
         (lhs_other, rhs_other) => panic!("Cannot use access with {:?} . {:?}", lhs_other, rhs_other)
     }
 }
@@ -62,7 +62,7 @@ fn execute_access_array_with_numeric(lhs_array: Vec<ExecuteOutput>, rhs_numeric:
     lhs_array.get(rhs_numeric).unwrap().clone()
 }
 
-fn execute_access_dict_with_string(lhs_dict: HashMap<String, ExecuteOutput>, rhs_string: String) -> ExecuteOutput {
-    println!("Accessing dict {:?} with {:?}", lhs_dict, rhs_string);
-    lhs_dict.get(&rhs_string).unwrap().clone()
+fn execute_access_dict_with_string(lhs_map: HashMap<String, ExecuteOutput>, rhs_string: String) -> ExecuteOutput {
+    println!("Accessing dict {:?} with {:?}", lhs_map, rhs_string);
+    lhs_map.get(&rhs_string).unwrap().clone()
 }

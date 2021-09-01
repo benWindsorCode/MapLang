@@ -34,6 +34,7 @@ pub enum AstNode {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DyadicVerb {
     Add,
+    Subtract,
     Divide,
     Multiply,
     Replicate,

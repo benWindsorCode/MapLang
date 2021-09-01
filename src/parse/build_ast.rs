@@ -131,6 +131,7 @@ fn parse_dyadic_verb(lhs: AstNode, pair: pest::iterators::Pair<Rule>, rhs: AstNo
 fn dyadic_verb_from_str(verb_str: &str) -> DyadicVerb {
     match verb_str {
         "+" => DyadicVerb::Add,
+        "-" => DyadicVerb::Subtract,
         "/" => DyadicVerb::Replicate,
         ">" => DyadicVerb::GreaterThan,
         "÷" => DyadicVerb::Divide,

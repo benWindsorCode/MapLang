@@ -439,7 +439,7 @@ fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
         (ExecuteOutput::ArrayOfNumerics (int_array), ExecuteOutput::Numeric (int_val))
             | (ExecuteOutput::Numeric (int_val), ExecuteOutput::ArrayOfNumerics(int_array)) => execute_add_int_array_to_int(int_array, int_val),
         // Adding two arrays of dicts
-        (ExecuteOutput::ArrayOfDicts (lhs_array), ExecuteOutput::ArrayOfDicts (rhs_array)) => execute_add_dict_arrays(lhs_array, rhs_array),
+        (ExecuteOutput::ArrayOfDicts (lhs_array), ExecuteOutput::ArrayOfDicts (rhs_array)) => execute_add_array_of_dicts(lhs_array, rhs_array),
         (lhs_other, rhs_other) => panic!("Cannot add pair ({:?}, {:?})", lhs_other, rhs_other)
     }
 }
@@ -511,7 +511,7 @@ fn execute_add_int_arrays(lhs_array: Vec<Numeric>, rhs_array: Vec<Numeric>) -> E
     ExecuteOutput::ArrayOfNumerics(output)
 }
 
-fn execute_add_dict_arrays(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<ExecuteOutput>) -> ExecuteOutput {
+fn execute_add_array_of_dicts(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<ExecuteOutput>) -> ExecuteOutput {
     if lhs_array.len() != rhs_array.len() {
         panic!("Cannot add dict arrays of different lengths {:?} vs {:?}", lhs_array.len(), rhs_array.len());
     }
@@ -566,18 +566,22 @@ fn execute_replicate_array(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOut
         Numeric::Float(x_float) => panic!("Cannot replicate with float values on lhs {:?}", x_float)
     }).collect();
 
-    let rhs_array = match rhs {
-        ExecuteOutput::ArrayOfNumerics (arr) => arr,
-        other => panic!("Array replication cant handle non array type {:?}", other)
-    };
 
+    match rhs {
+        ExecuteOutput::ArrayOfNumerics (arr) => execute_replicate_array_of_numerics(lhs_array, arr),
+        ExecuteOutput::ArrayOfDicts (arr) => execute_replicate_array_of_dicts(lhs_array, arr),
+        other => panic!("Array replication cant handle non array type {:?}", other)
+    }
+}
+
+fn execute_replicate_array_of_numerics(lhs_array: Vec<i64>, rhs_array: Vec<Numeric>) -> ExecuteOutput {
     if lhs_array.len() != rhs_array.len() {
         panic!("Cannot add arrays of two different sizes: {} vs {}", lhs_array.len(), rhs_array.len());
     }
 
     println!("Replicating: {:?} / {:?}", lhs_array, rhs_array);
 
-    let mut output: Vec<Numeric> = Vec::new();
+    let mut output = Vec::new();
 
     for i in 0..lhs_array.len() {
         let multiplicity = lhs_array.get(i).unwrap();
@@ -592,6 +596,30 @@ fn execute_replicate_array(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOut
     }
 
     ExecuteOutput::ArrayOfNumerics(output)
+}
+
+fn execute_replicate_array_of_dicts(lhs_array: Vec<i64>, rhs_array: Vec<ExecuteOutput>) -> ExecuteOutput {
+    if lhs_array.len() != rhs_array.len() {
+        panic!("Cannot add arrays of two different sizes: {} vs {}", lhs_array.len(), rhs_array.len());
+    }
+
+    println!("Replicating: {:?} / {:?}", lhs_array, rhs_array);
+
+    let mut output = Vec::new();
+
+    for i in 0..lhs_array.len() {
+        let multiplicity = lhs_array.get(i).unwrap();
+
+        if *multiplicity < 0 {
+            panic!("Multiplicity {} is less than zero, not allowed in replicate command", multiplicity);
+        }
+
+        for _ in 0..*multiplicity {
+            output.push(rhs_array.get(i).unwrap().clone());
+        }
+    }
+
+    ExecuteOutput::ArrayOfDicts(output)
 }
 
 fn execute_array_greaterthan_int(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {

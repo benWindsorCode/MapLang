@@ -15,7 +15,7 @@ fn execute_replicate_arrays(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<Execut
 
     let lhs_array: Vec<i64> = lhs_array.into_iter().map(|x| match x {
         ExecuteOutput::Numeric(Numeric::Int(x_int)) => x_int,
-        other => panic!("Cannot replicate with {:?} values on lhs, mustbe array of ints as lhs", other)
+        other => panic!("Cannot replicate with {:?} values on lhs, must be array of ints as lhs", other)
     }).collect();
 
     let mut output = Vec::new();

@@ -448,8 +448,11 @@ fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
 
 fn execute_divide(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     match (lhs, rhs) {
-        // dividing an array by a number
+        // Divide an array by an array
+        (ExecuteOutput::ArrayOfNumerics (lhs_array), ExecuteOutput::ArrayOfNumerics (rhs_array)) => execute_divide_array_by_array(lhs_array, rhs_array),
+        // Divide an array by a number
         (ExecuteOutput::ArrayOfNumerics (lhs_array), ExecuteOutput::Numeric (numeric)) => execute_divide_array_by_numeric(lhs_array, numeric),
+        // Divide a number by a number
         (ExecuteOutput::Numeric (lhs_numeric), ExecuteOutput::Numeric (rhs_numeric)) => execute_divide_numeric_by_numeric(lhs_numeric, rhs_numeric),
         (lhs_other, rhs_other) => panic!("Cannot divide pair ({:?}, {:?})", lhs_other, rhs_other)
     }
@@ -475,6 +478,30 @@ fn execute_divide_array_by_numeric(lhs_array: Vec<Numeric>, numeric: Numeric) ->
     // TODO: is there a way to do this with float_vals.into_iter().map(...), couldn't get denominator to come into scope of lambda
     for val in float_vals {
         output.push(Numeric::Float(val / denominator));
+    }
+
+    ExecuteOutput::ArrayOfNumerics(output)
+}
+
+fn execute_divide_array_by_array(lhs_array: Vec<Numeric>, rhs_array: Vec<Numeric>) -> ExecuteOutput {
+    if lhs_array.len() != rhs_array.len() {
+        panic!("Cannot divide two arrays of different size {:?} vs {:?}", lhs_array, rhs_array);
+    }
+
+    let mut output: Vec<Numeric> = Vec::new();
+
+    for i in 0..lhs_array.len() {
+        let lhs_value = match *lhs_array.get(i).unwrap() {
+            Numeric::Float (x) => x,
+            Numeric::Int (x) => x as f64
+        };
+
+        let rhs_value = match *rhs_array.get(i).unwrap() {
+            Numeric::Float (x) => x,
+            Numeric::Int (x) => x as f64
+        };
+
+        output.push(Numeric::Float(lhs_value / rhs_value));
     }
 
     ExecuteOutput::ArrayOfNumerics(output)
@@ -648,7 +675,6 @@ fn execute_array_greaterthan_int(lhs: ExecuteOutput, rhs: ExecuteOutput) -> Exec
     ExecuteOutput::ArrayOfNumerics(output)
 }
 
-// For now only support vectors of integers
 fn unwrap_array(vals: Vec<AstNode>, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     let vals_clone = vals.clone();
     let mut int_array: Vec<Numeric> = Vec::new();

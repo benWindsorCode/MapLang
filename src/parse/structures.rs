@@ -37,6 +37,7 @@ pub enum DyadicVerb {
     Subtract,
     Divide,
     Multiply,
+    Equals,
     Replicate,
     GreaterThan,
     Access

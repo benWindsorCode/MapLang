@@ -6,6 +6,7 @@ use super::dyadic_greaterthan::execute_greaterthan;
 use super::dyadic_replicate::execute_replicate;
 use super::dyadic_multiply::execute_multiply;
 use super::dyadic_access::execute_access;
+use super::dyadic_equals::execute_equals;
 
 pub fn execute_dyadic_op(verb: DyadicVerb, lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     match verb {
@@ -20,6 +21,9 @@ pub fn execute_dyadic_op(verb: DyadicVerb, lhs: ExecuteOutput, rhs: ExecuteOutpu
         }
         DyadicVerb::Replicate => {
             execute_replicate(lhs, rhs)
+        },
+        DyadicVerb::Equals => {
+            execute_equals(lhs, rhs)
         },
         DyadicVerb::GreaterThan => {
             execute_greaterthan(lhs, rhs)

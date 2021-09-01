@@ -137,6 +137,7 @@ fn dyadic_verb_from_str(verb_str: &str) -> DyadicVerb {
         "÷" => DyadicVerb::Divide,
         "×" => DyadicVerb::Multiply,
         "." => DyadicVerb::Access,
+        "=" => DyadicVerb::Equals,
         other => panic!("Dyadic Verb {:?} not implemented", other)
     }
 }

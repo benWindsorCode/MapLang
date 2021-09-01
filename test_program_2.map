@@ -1,5 +1,2 @@
-employee_data <- [ { 'salary' : 500, 'age' : 22 }, { 'salary' : 1000, 'age' : 25 }, { 'salary' : 2400, 'age' : 23 } ]
-salaries <- employee_data.'salary'
-average_salary <- (+/ salaries) ÷ ⍴ salaries
-print average_salary
-print [1, 2] + [3, 4]
+eq <- [1, 3, 3, 9, 12] = [1, 0, 3, 0, 0]
+print eq

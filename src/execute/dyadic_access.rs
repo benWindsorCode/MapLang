@@ -6,6 +6,7 @@ pub fn execute_access(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     match (lhs, rhs) {
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Array (rhs_array)) => execute_access_array_with_array(lhs_array, rhs_array),
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::String (rhs_string)) => execute_access_array_with_string(lhs_array, rhs_string),
+        (ExecuteOutput::Array (lhs_array), ExecuteOutput::Numeric (rhs_numeric)) => execute_access_array_with_numeric(lhs_array, rhs_numeric),
         (ExecuteOutput::Dictionary (lhs_dict), ExecuteOutput::String (rhs_string)) => execute_access_dict_with_string(lhs_dict, rhs_string),
         (lhs_other, rhs_other) => panic!("Cannot use access with {:?} . {:?}", lhs_other, rhs_other)
     }
@@ -50,6 +51,15 @@ fn execute_access_array_with_string(lhs_array: Vec<ExecuteOutput>, rhs_string: S
     }
 
     ExecuteOutput::Array(output)
+}
+
+fn execute_access_array_with_numeric(lhs_array: Vec<ExecuteOutput>, rhs_numeric: Numeric) -> ExecuteOutput {
+    let rhs_numeric: usize = match rhs_numeric {
+        Numeric::Int (x) => x as usize,
+        other => panic!("Cannot access array via non int {:?} numeric", other)
+    };
+
+    lhs_array.get(rhs_numeric).unwrap().clone()
 }
 
 fn execute_access_dict_with_string(lhs_dict: HashMap<String, ExecuteOutput>, rhs_string: String) -> ExecuteOutput {

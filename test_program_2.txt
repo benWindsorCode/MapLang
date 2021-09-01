@@ -1,4 +1,4 @@
-x <- [ {'age': 50 }, {'age':19 } ]
-k <- [0,0,1,0]
-y <- x.k
-print y
+employee_data <- [ { 'salary' : 500, 'age' : 22 }, { 'salary' : 1000, 'age' : 25 }, { 'salary' : 2400, 'age' : 23 } ]
+salaries <- employee_data.'salary'
+average_salary <- (+/ salaries) ÷ ⍴ salaries
+print average_salary

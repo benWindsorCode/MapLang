@@ -15,7 +15,7 @@ employee_data <- [ { 'salary' : 500, 'age' : 22 }, { 'salary' : 1000, 'age' : 25
 
 This language aims to allow for APL style manipulation of map data.
 
-# Example: employee average
+# Example: employee average values
 The following program computes the average values of employee data (those familiar with APL will recognise the pattern):
 ```
 employee_data <- [ { 'salary' : 500, 'age' : 22 }, { 'salary' : 1000, 'age' : 25 }, { 'salary' : 2400, 'age' : 23 } ]
@@ -29,6 +29,25 @@ PRINT Dictionary({"age": Numeric(Float(23.333333333333332)), "salary": Numeric(F
 
 A short explanation of the above program is that on the left of the divide, performing a reduciton of '+' over the structures, to produce a total structure, then dividing this by the right hand side value which is the number of items in the employee_data array.
 
+# Example: extract values from array of dictionaries
+A common action is to run some computation on some specific fields of dictionaries in aggregate:
+```
+employee_data <- [ { 'salary' : 500, 'age' : 22 }, { 'salary' : 1000, 'age' : 25 }, { 'salary' : 2400, 'age' : 23 } ]
+salaries <- employee_data.'salary'
+average_salary <- (+/ salaries) ÷ ⍴ salaries
+print average_salary
+```
+which gives output of:
+```
+PRINT Numeric(Float(1300.0))
+```
+where the important piece of code here is:
+```
+employee_data.'salary'
+```
+which creates an array of only the salaries [ 500, 1000, 2400 ] extracting just that component.
+
+TODO: implement extraction of sub-structure a.['salary', 'age'] which can pull multi fields 
 ## Resources
 - useful guide to rusts module system: http://www.sheshbabu.com/posts/rust-module-system/ 
 - pest docs parsing j lang: https://pest.rs/book/examples/jlang.html

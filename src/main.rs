@@ -90,10 +90,8 @@ pub enum ExecuteOutput {
     // TODO: is there a nicer way to make the inner value forced to Dict? perhaps the Dict(Dict) pattern with inner structure of enum
     // Array of dicts
     ArrayOfDicts(Vec<ExecuteOutput>),
-    // Dict of int arrays
-    Dictionary(HashMap<String, Vec<Numeric>>),
-    // Dict of int or float
-    DictionaryOfNumerics(HashMap<String, Numeric>),
+    // Dict of string -> any value
+    Dictionary(HashMap<String, ExecuteOutput>), 
     // Numeric int or float
     Numeric(Numeric),
     Null
@@ -442,6 +440,8 @@ fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
             | (ExecuteOutput::Numeric (int_val), ExecuteOutput::ArrayOfNumerics(int_array)) => execute_add_int_array_to_int(int_array, int_val),
         // Adding two arrays of dicts
         (ExecuteOutput::ArrayOfDicts (lhs_array), ExecuteOutput::ArrayOfDicts (rhs_array)) => execute_add_array_of_dicts(lhs_array, rhs_array),
+        // Adding two numbers
+        (ExecuteOutput::Numeric (lhs_val), ExecuteOutput::Numeric (rhs_val)) => ExecuteOutput::Numeric(lhs_val + rhs_val),
         (lhs_other, rhs_other) => panic!("Cannot add pair ({:?}, {:?})", lhs_other, rhs_other)
     }
 }
@@ -525,9 +525,9 @@ fn execute_add_array_of_dicts(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<Exec
         let rhs_val = rhs_array.get(i).unwrap().clone();
 
         match (lhs_val, rhs_val) {
-            (ExecuteOutput::DictionaryOfNumerics (lhs_dict), ExecuteOutput::DictionaryOfNumerics (rhs_dict)) => { 
+            (ExecuteOutput::Dictionary (lhs_dict), ExecuteOutput::Dictionary (rhs_dict)) => { 
                 let sum = add_dicts_of_numerics(lhs_dict, rhs_dict);
-                output.push(ExecuteOutput::DictionaryOfNumerics(sum)); 
+                output.push(ExecuteOutput::Dictionary(sum)); 
             },
             (lhs_other, rhs_other) => panic!("Cannot add dict array values {:?} vs {:?}", lhs_other, rhs_other)
         }
@@ -536,16 +536,16 @@ fn execute_add_array_of_dicts(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<Exec
     ExecuteOutput::ArrayOfDicts(output)
 }
 
-fn add_dicts_of_numerics(lhs_dict: HashMap<String, Numeric>, rhs_dict: HashMap<String, Numeric>) -> HashMap<String, Numeric> {
+fn add_dicts_of_numerics(lhs_dict: HashMap<String, ExecuteOutput>, rhs_dict: HashMap<String, ExecuteOutput>) -> HashMap<String, ExecuteOutput> {
     if lhs_dict.len() != rhs_dict.len() {
         panic!("Cannot add dicts of different lengths: {:?} vs {:?}", lhs_dict.len(), rhs_dict.len());
     }
 
-    let mut output: HashMap<String, Numeric> = HashMap::new();
+    let mut output: HashMap<String, ExecuteOutput> = HashMap::new();
 
     for (key, value) in lhs_dict {
-        let rhs_value = *rhs_dict.get(&key).unwrap();
-        output.insert(key, value + rhs_value);
+        let rhs_value = rhs_dict.get(&key).unwrap().clone();
+        output.insert(key, execute_add(value, rhs_value));
     }
 
     output
@@ -690,28 +690,13 @@ fn unwrap_array(vals: Vec<AstNode>, state: &mut HashMap<String, ExecuteOutput>) 
 }
 
 fn unwrap_dictionary(dict: HashMap<String, AstNode>, state: &mut HashMap<String, ExecuteOutput>) -> ExecuteOutput {
-    let mut dict_of_vec: HashMap<String, Vec<Numeric>> = HashMap::new();
-    let mut dict_of_int: HashMap<String, Numeric> = HashMap::new();
-    let mut dict_of_float: HashMap<String, Numeric> = HashMap::new();
+    let mut unwrapped_dict: HashMap<String, ExecuteOutput> = HashMap::new();
 
     for (key, value) in dict {
-        match execute_expression(value, state) {
-            ExecuteOutput::ArrayOfNumerics (arr) => { dict_of_vec.insert(key, arr); },
-            ExecuteOutput::Numeric (Numeric::Int(int_val)) => { dict_of_int.insert(key, Numeric::Int(int_val)); },
-            other => panic!("Cant support dictionary with value {:?}", other)
-        };
+        unwrapped_dict.insert(key, execute_expression(value, state));
     }
 
-    if dict_of_vec.len() > 0 && dict_of_int.len() > 0 {
-        panic!("Cannot create dict of vec and int");
-    }
-
-    if dict_of_vec.len() > 0 {
-        return ExecuteOutput::Dictionary(dict_of_vec);
-    }
-
-    // TODO: if both dict of vec and int are empty then we default to int dict is that nice?
-    ExecuteOutput::DictionaryOfNumerics(dict_of_int)
+    ExecuteOutput::Dictionary(unwrapped_dict)
 }
 
 // Given a variable name, unwrap its value, copy the data from state and return a new execute output
@@ -728,14 +713,14 @@ fn unwrap_variable(var: String, state: &HashMap<String, ExecuteOutput>) -> Execu
         ExecuteOutput::ArrayOfDicts (dict) => {
             ExecuteOutput::ArrayOfDicts(dict.clone())
         },
-        ExecuteOutput::DictionaryOfNumerics (dict) => {
-            let mut copied_dict: HashMap<String, Numeric> = HashMap::new();
+        ExecuteOutput::Dictionary (dict) => {
+            let mut copied_dict: HashMap<String, ExecuteOutput> = HashMap::new();
 
             for (key, values) in dict {
-                copied_dict.insert(key.to_string(), *values);
+                copied_dict.insert(key.to_string(), values.clone());
             }
 
-            ExecuteOutput::DictionaryOfNumerics(copied_dict)
+            ExecuteOutput::Dictionary(copied_dict)
         },
         ExecuteOutput::Numeric (int_val) => {
             ExecuteOutput::Numeric(int_val.clone())

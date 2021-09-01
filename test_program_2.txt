@@ -1,6 +1,4 @@
-test <- [ { 'age':400, 'size':1 }, {'age' :200, 'size':2 }]
-test2 <- [ { 'age':300, 'size':12 }, {'age' :200, 'size':34 }]
+test <- [ { 'age':400, 'size': [1,2] }, {'age' :200, 'size':[4,5] }]
+test2 <- [ { 'age':300, 'size':[8,12] }, {'age' :200, 'size':[17,20] }]
 test3 <- test + test2
 print test3
-print [0,1] / test3
-print (⍴ test3)

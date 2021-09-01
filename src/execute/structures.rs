@@ -5,8 +5,8 @@ use crate::parse::structures::Numeric;
 pub enum ExecuteOutput {
     // Array of any value
     Array(Vec<ExecuteOutput>),
-    // Dict of string -> any value
-    Dictionary(HashMap<String, ExecuteOutput>), 
+    // Map of string -> any value
+    Map(HashMap<String, ExecuteOutput>), 
     // Numeric int or float
     Numeric(Numeric),
     // General string

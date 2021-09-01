@@ -7,7 +7,7 @@ pub fn execute_divide(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
         // Divide an array by an array
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Array (rhs_array)) => execute_divide_array_by_array(lhs_array, rhs_array),
         // Divide a dictionary by a number
-        (ExecuteOutput::Dictionary (lhs_dict), ExecuteOutput::Numeric (rhs_numeric)) => execute_divide_dict_by_numeric(lhs_dict, rhs_numeric),
+        (ExecuteOutput::Map (lhs_dict), ExecuteOutput::Numeric (rhs_numeric)) => execute_divide_dict_by_numeric(lhs_dict, rhs_numeric),
         // Divide an array by a number
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Numeric (numeric)) => execute_divide_array_by_numeric(lhs_array, numeric),
         // Divide a number by a number
@@ -55,7 +55,7 @@ fn execute_divide_dict_by_numeric(lhs_dict: HashMap<String, ExecuteOutput>, nume
         output.insert(key, execute_divide(val, numeric.clone()));
     }
 
-    ExecuteOutput::Dictionary(output)
+    ExecuteOutput::Map(output)
 }
 
 fn execute_divide_numeric_by_numeric(lhs_numeric: Numeric, rhs_numeric: Numeric) -> ExecuteOutput {

@@ -1,4 +1,4 @@
-# A Map programming language (rather than an Array language)
+# MapLang - A Map programming language
 APL, J, K etc. are all array languages, and as such the array is the core object they manipulate. Conceptually however a lot of data is more naturally represented by a map structure (e.g. Python dictionary).
 
 For example, employee data, in APL you may have:
@@ -24,7 +24,7 @@ print averages
 ```
 which gives output of:
 ```
-PRINT Dictionary({"age": Numeric(Float(23.333333333333332)), "salary": Numeric(Float(1300.0))})
+PRINT Map({"age": Numeric(Float(23.333333333333332)), "salary": Numeric(Float(1300.0))})
 ```
 
 A short explanation of the above program is that on the left of the divide, performing a reduciton of '+' over the structures, to produce a total structure, then dividing this by the right hand side value which is the number of items in the employee_data array.

@@ -26,7 +26,7 @@ pub enum AstNode {
         expression: Box<AstNode>,
     },
     Array(Vec<AstNode>),
-    Dictionary(HashMap<String, AstNode>),
+    Map(HashMap<String, AstNode>),
     String(String),
     Variable(String)
 }

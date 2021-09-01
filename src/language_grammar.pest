@@ -6,9 +6,9 @@ variable = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 string = @{ "'" ~ ( "''" | (!"'" ~ ANY) )* ~ "'" }
 array = { "[" ~ (types ~ ",")* ~ types? ~ "]" }
 entry = { string ~ ":" ~ expression }
-dictionary = { "{" ~ (entry ~ ",")* ~ entry? ~ "}" }
+map = { "{" ~ (entry ~ ",")* ~ entry? ~ "}" }
 
-types = _{ decimal | integer | string | dictionary | array }
+types = _{ decimal | integer | string | map | array }
 
 verb = { "+" | "-" | "×" | "÷" | "print" | "⍳" | "⍴" | "/" | ">" | "¨" | "." }
 
@@ -17,7 +17,7 @@ expression = { assignment | operatorExpression | monadicExpression | dyadicExpre
 operatorExpression = { verb ~ verb ~ expression | "(" ~ verb+ ~ ")" ~ verb ~ expression }
 monadicExpression = { verb ~ expression }
 dyadicExpression = { (monadicExpression | terms) ~ verb ~ expression }
-term = _{ decimal | integer | string | variable | array | dictionary | "(" ~ expression ~ ")" }
+term = _{ decimal | integer | string | variable | array | map | "(" ~ expression ~ ")" }
 terms = { term+ }
 
 program = _{ SOI ~ "\n"* ~ (expression ~ "\n"+)* ~ expression? ~ EOI }

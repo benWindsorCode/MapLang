@@ -37,7 +37,7 @@ pub fn execute_expression(expression: AstNode, state: &mut HashMap<String, Execu
         AstNode::String (val) => {
             ExecuteOutput::String(val)
         },
-        AstNode::Dictionary (dict) => {
+        AstNode::Map (dict) => {
             unwrap_dictionary(dict, state)
         },
         AstNode::GlobalVar {variable, expression} => {

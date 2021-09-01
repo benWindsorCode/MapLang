@@ -63,7 +63,7 @@ fn initial_reduce_value(template: ExecuteOutput, identity_type: IdentityType) ->
         ExecuteOutput::Numeric (Numeric::Float(_)) => ExecuteOutput::Numeric(Numeric::Float(identity_val as f64)),
         ExecuteOutput::Numeric (Numeric::Int(_)) => ExecuteOutput::Numeric(Numeric::Int(identity_val)),
         ExecuteOutput::Array (arr) => initial_reduce_value_array(arr, identity_type),
-        ExecuteOutput::Dictionary (dict) => initial_reduce_value_dict(dict, identity_type),
+        ExecuteOutput::Map (dict) => initial_reduce_value_dict(dict, identity_type),
         other => panic!("Cannot handle dyadic reduce over array of {:?}", other)
     };
 
@@ -87,5 +87,5 @@ fn initial_reduce_value_dict(template: HashMap<String, ExecuteOutput>, identity_
         initial.insert(key, initial_reduce_value(val, identity_type));
     }
 
-    ExecuteOutput::Dictionary(initial)
+    ExecuteOutput::Map(initial)
 }

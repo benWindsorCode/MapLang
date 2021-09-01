@@ -53,7 +53,7 @@ fn run_program(program: Vec<AstNode>) {
 }
 
 fn main() {
-    let unparsed_file = fs::read_to_string("test_program_2.txt").expect("cannot read file");
+    let unparsed_file = fs::read_to_string("test_program_2.map").expect("cannot read file");
 
     let out = parse(&unparsed_file).unwrap();
 

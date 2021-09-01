@@ -7,7 +7,7 @@ pub fn execute_access(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Array (rhs_array)) => execute_access_array_with_array(lhs_array, rhs_array),
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::String (rhs_string)) => execute_access_array_with_string(lhs_array, rhs_string),
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Numeric (rhs_numeric)) => execute_access_array_with_numeric(lhs_array, rhs_numeric),
-        (ExecuteOutput::Dictionary (lhs_dict), ExecuteOutput::String (rhs_string)) => execute_access_dict_with_string(lhs_dict, rhs_string),
+        (ExecuteOutput::Map (lhs_dict), ExecuteOutput::String (rhs_string)) => execute_access_dict_with_string(lhs_dict, rhs_string),
         (lhs_other, rhs_other) => panic!("Cannot use access with {:?} . {:?}", lhs_other, rhs_other)
     }
 }
@@ -36,7 +36,7 @@ fn execute_access_array_with_string(lhs_array: Vec<ExecuteOutput>, rhs_string: S
 
     for val in lhs_array {
         match val {
-            ExecuteOutput::Dictionary (dict) => dicts.push(dict),
+            ExecuteOutput::Map (dict) => dicts.push(dict),
             other => panic!("Cannot access array with string, if not array of dicts. Found {:?}", other)
         }
     }
@@ -46,7 +46,7 @@ fn execute_access_array_with_string(lhs_array: Vec<ExecuteOutput>, rhs_string: S
     // wrap up string and dicts into ExecuteOutput in order to pass back into execute_access
     let rhs_string = ExecuteOutput::String(rhs_string);
     for dict in dicts {
-        let dict = ExecuteOutput::Dictionary(dict);
+        let dict = ExecuteOutput::Map(dict);
         output.push(execute_access(dict, rhs_string.clone()));
     }
 

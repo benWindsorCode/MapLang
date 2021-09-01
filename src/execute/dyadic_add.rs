@@ -12,7 +12,7 @@ pub fn execute_add(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
         // Adding two numbers
         (ExecuteOutput::Numeric (lhs_val), ExecuteOutput::Numeric (rhs_val)) => ExecuteOutput::Numeric(lhs_val + rhs_val),
         // Adding two dicts
-        (ExecuteOutput::Dictionary (lhs_dict), ExecuteOutput::Dictionary (rhs_dict)) => execute_add_dicts(lhs_dict, rhs_dict),
+        (ExecuteOutput::Map (lhs_dict), ExecuteOutput::Map (rhs_dict)) => execute_add_dicts(lhs_dict, rhs_dict),
         (lhs_other, rhs_other) => panic!("Cannot add pair ({:?}, {:?})", lhs_other, rhs_other)
     }
 }
@@ -46,7 +46,7 @@ fn execute_add_dicts(lhs_dict: HashMap<String, ExecuteOutput>, rhs_dict: HashMap
         output.insert(key, execute_add(value, rhs_value));
     }
 
-    ExecuteOutput::Dictionary(output)
+    ExecuteOutput::Map(output)
 }
 
 fn execute_add_array_and_numeric(int_array:  Vec<ExecuteOutput>, int_val: Numeric) -> ExecuteOutput {

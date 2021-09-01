@@ -16,7 +16,7 @@ pub fn unwrap_array(vals: Vec<AstNode>, state: &mut HashMap<String, ExecuteOutpu
             AstNode::Array (arr) => {
                 array.push(unwrap_array(arr, state))
             },
-            AstNode::Dictionary (dict_val) => {
+            AstNode::Map (dict_val) => {
                 array.push(unwrap_dictionary(dict_val, state))
             }
             other => panic!("cant handle array of: {:?}", other)
@@ -33,7 +33,7 @@ pub fn unwrap_dictionary(dict: HashMap<String, AstNode>, state: &mut HashMap<Str
         unwrapped_dict.insert(key, execute_expression(value, state));
     }
 
-    ExecuteOutput::Dictionary(unwrapped_dict)
+    ExecuteOutput::Map(unwrapped_dict)
 }
 
 // Given a variable name, unwrap its value, copy the data from state and return a new execute output
@@ -42,14 +42,14 @@ pub fn unwrap_variable(var: String, state: &HashMap<String, ExecuteOutput>) -> E
         ExecuteOutput::Array (arr) => {
             ExecuteOutput::Array(arr.clone())
         },
-        ExecuteOutput::Dictionary (dict) => {
+        ExecuteOutput::Map (dict) => {
             let mut copied_dict: HashMap<String, ExecuteOutput> = HashMap::new();
 
             for (key, values) in dict {
                 copied_dict.insert(key.to_string(), values.clone());
             }
 
-            ExecuteOutput::Dictionary(copied_dict)
+            ExecuteOutput::Map(copied_dict)
         },
         ExecuteOutput::Numeric (int_val) => {
             ExecuteOutput::Numeric(int_val.clone())

@@ -13,7 +13,7 @@ pub fn execute_multiply(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput
         // Multiply two numbers
         (ExecuteOutput::Numeric (lhs_val), ExecuteOutput::Numeric (rhs_val)) => ExecuteOutput::Numeric(lhs_val * rhs_val),
         // Multiply two dicts
-        (ExecuteOutput::Dictionary (lhs_dict), ExecuteOutput::Dictionary (rhs_dict)) => execute_multiply_dicts(lhs_dict, rhs_dict),
+        (ExecuteOutput::Map (lhs_dict), ExecuteOutput::Map (rhs_dict)) => execute_multiply_dicts(lhs_dict, rhs_dict),
         (lhs_other, rhs_other) => panic!("Cannot multiply pair ({:?}, {:?})", lhs_other, rhs_other)
     }
 }
@@ -47,7 +47,7 @@ fn execute_multiply_dicts(lhs_dict: HashMap<String, ExecuteOutput>, rhs_dict: Ha
         output.insert(key, execute_multiply(value, rhs_value));
     }
 
-    ExecuteOutput::Dictionary(output)
+    ExecuteOutput::Map(output)
 }
 
 fn execute_multiply_array_and_numeric(int_array:  Vec<ExecuteOutput>, int_val: Numeric) -> ExecuteOutput {

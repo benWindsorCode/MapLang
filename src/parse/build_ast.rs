@@ -90,8 +90,8 @@ fn build_ast_from_term(pair: pest::iterators::Pair<Rule>) -> AstNode {
 
             AstNode::Array(vals)
         },
-        Rule::dictionary => {
-            let mut dictionary: HashMap<String, AstNode> = HashMap::new();
+        Rule::map => {
+            let mut map: HashMap<String, AstNode> = HashMap::new();
             
             for entry in pair.into_inner() {
                 let mut entry = entry.into_inner();
@@ -105,10 +105,10 @@ fn build_ast_from_term(pair: pest::iterators::Pair<Rule>) -> AstNode {
                 let expr = entry.next().unwrap();
                 let expr = build_ast_from_expr(expr);
                 
-                dictionary.insert(var, expr);
+                map.insert(var, expr);
             }
 
-            AstNode::Dictionary(dictionary)
+            AstNode::Map(map)
         },
         Rule::expression => {
             build_ast_from_expr(pair)

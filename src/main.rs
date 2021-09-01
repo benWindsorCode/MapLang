@@ -423,7 +423,7 @@ fn reduce_dyadic_add(rhs: ExecuteOutput) -> ExecuteOutput {
         ExecuteOutput::Array (arr) => {
             let first = arr.get(0).unwrap().clone();
 
-            let mut total = initial_reduce_value(first);
+            let mut total = initial_reduce_add_value(first);
 
             for val in arr {
                 total = execute_add(total, val);
@@ -435,33 +435,34 @@ fn reduce_dyadic_add(rhs: ExecuteOutput) -> ExecuteOutput {
     }
 }
 
-fn initial_reduce_value(template: ExecuteOutput) -> ExecuteOutput {
+fn initial_reduce_add_value(template: ExecuteOutput) -> ExecuteOutput {
+    // Create initial value to start the reduce add operation with
     let initial = match template {
         ExecuteOutput::Numeric (Numeric::Float(_)) => ExecuteOutput::Numeric(Numeric::Float(0.0)),
         ExecuteOutput::Numeric (Numeric::Int(_)) => ExecuteOutput::Numeric(Numeric::Int(0)),
-        ExecuteOutput::Array (arr) => initial_reduce_value_array(arr),
-        ExecuteOutput::Dictionary (dict) => initial_reduce_value_dict(dict),
+        ExecuteOutput::Array (arr) => initial_reduce_add_value_array(arr),
+        ExecuteOutput::Dictionary (dict) => initial_reduce_add_value_dict(dict),
         other => panic!("Cannot handle dyadic reduce over array of {:?}", other)
     };
 
     initial
 }
 
-fn initial_reduce_value_array(template: Vec<ExecuteOutput>) -> ExecuteOutput {
+fn initial_reduce_add_value_array(template: Vec<ExecuteOutput>) -> ExecuteOutput {
     let mut initial: Vec<ExecuteOutput> = Vec::new();
 
     for val in template {
-        initial.push(initial_reduce_value(val));
+        initial.push(initial_reduce_add_value(val));
     }
 
     ExecuteOutput::Array(initial)
 }
 
-fn initial_reduce_value_dict(template: HashMap<String, ExecuteOutput>) -> ExecuteOutput {
+fn initial_reduce_add_value_dict(template: HashMap<String, ExecuteOutput>) -> ExecuteOutput {
     let mut initial: HashMap<String, ExecuteOutput> = HashMap::new();
 
     for (key, val) in template {
-        initial.insert(key, initial_reduce_value(val));
+        initial.insert(key, initial_reduce_add_value(val));
     }
 
     ExecuteOutput::Dictionary(initial)
@@ -486,6 +487,8 @@ fn execute_divide(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     match (lhs, rhs) {
         // Divide an array by an array
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Array (rhs_array)) => execute_divide_array_by_array(lhs_array, rhs_array),
+        // Divide a dictionary by a number
+        (ExecuteOutput::Dictionary (lhs_dict), ExecuteOutput::Numeric (rhs_numeric)) => execute_divide_dict_by_numeric(lhs_dict, rhs_numeric),
         // Divide an array by a number
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Numeric (numeric)) => execute_divide_array_by_numeric(lhs_array, numeric),
         // Divide a number by a number
@@ -522,6 +525,18 @@ fn execute_divide_array_by_array(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<E
     }
 
     ExecuteOutput::Array(output)
+}
+
+fn execute_divide_dict_by_numeric(lhs_dict: HashMap<String, ExecuteOutput>, numeric: Numeric) -> ExecuteOutput {
+    let mut output: HashMap<String, ExecuteOutput> = HashMap::new();
+
+    // Wrap numeric in an ExecuteOutput so it can be passed back into calculate_divide
+    let numeric = ExecuteOutput::Numeric(numeric);
+    for (key, val) in lhs_dict {
+        output.insert(key, execute_divide(val, numeric.clone()));
+    }
+
+    ExecuteOutput::Dictionary(output)
 }
 
 fn execute_divide_numeric_by_numeric(lhs_numeric: Numeric, rhs_numeric: Numeric) -> ExecuteOutput {

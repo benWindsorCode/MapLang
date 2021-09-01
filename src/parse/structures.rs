@@ -27,6 +27,7 @@ pub enum AstNode {
     },
     Array(Vec<AstNode>),
     Dictionary(HashMap<String, AstNode>),
+    String(String),
     Variable(String)
 }
 
@@ -36,7 +37,8 @@ pub enum DyadicVerb {
     Divide,
     Multiply,
     Replicate,
-    GreaterThan
+    GreaterThan,
+    Access
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]

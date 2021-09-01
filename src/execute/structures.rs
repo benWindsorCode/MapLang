@@ -9,5 +9,7 @@ pub enum ExecuteOutput {
     Dictionary(HashMap<String, ExecuteOutput>), 
     // Numeric int or float
     Numeric(Numeric),
+    // General string
+    String(String),
     Null
 }

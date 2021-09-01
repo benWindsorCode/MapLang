@@ -34,6 +34,9 @@ pub fn execute_expression(expression: AstNode, state: &mut HashMap<String, Execu
         AstNode::Numeric (val) => {
             ExecuteOutput::Numeric(val)
         },
+        AstNode::String (val) => {
+            ExecuteOutput::String(val)
+        },
         AstNode::Dictionary (dict) => {
             unwrap_dictionary(dict, state)
         },

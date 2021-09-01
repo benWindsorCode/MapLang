@@ -77,6 +77,14 @@ fn build_ast_from_term(pair: pest::iterators::Pair<Rule>) -> AstNode {
             let float: f64 = fstr.parse().unwrap();
             AstNode::Numeric(Numeric::Float(float))
         },
+        Rule::string => {
+            // String first and last char as they are "'" characters
+            let mut chars = pair.as_str().chars();
+            chars.next();
+            chars.next_back();
+
+            AstNode::String(chars.as_str().to_string())
+        },
         Rule::array => {
             let vals: Vec<AstNode> = pair.into_inner().map(build_ast_from_term).collect();
 
@@ -127,6 +135,7 @@ fn dyadic_verb_from_str(verb_str: &str) -> DyadicVerb {
         ">" => DyadicVerb::GreaterThan,
         "÷" => DyadicVerb::Divide,
         "×" => DyadicVerb::Multiply,
+        "." => DyadicVerb::Access,
         other => panic!("Dyadic Verb {:?} not implemented", other)
     }
 }

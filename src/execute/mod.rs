@@ -9,4 +9,5 @@ pub mod dyadic_divide;
 pub mod dyadic_multiply;
 pub mod dyadic_replicate;
 pub mod dyadic_greaterthan;
+pub mod dyadic_access;
 pub mod operator_reduce;

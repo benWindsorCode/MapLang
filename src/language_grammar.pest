@@ -8,16 +8,16 @@ array = { "[" ~ (types ~ ",")* ~ types? ~ "]" }
 entry = { string ~ ":" ~ expression }
 dictionary = { "{" ~ (entry ~ ",")* ~ entry? ~ "}" }
 
-types = _{ decimal | integer | dictionary | array }
+types = _{ decimal | integer | string | dictionary | array }
 
-verb = { "+" | "×" | "÷" | "print" | "⍳" | "⍴" | "/" | ">" | "¨" }
+verb = { "+" | "×" | "÷" | "print" | "⍳" | "⍴" | "/" | ">" | "¨" | "." }
 
 assignment = { variable ~ "<-" ~ expression }
-expression = { assignment | operatorExpression | monadicExpression | dyadicExpression | string | terms }
+expression = { assignment | operatorExpression | monadicExpression | dyadicExpression | terms | string }
 operatorExpression = { verb ~ verb ~ expression | "(" ~ verb+ ~ ")" ~ verb ~ expression }
 monadicExpression = { verb ~ expression }
 dyadicExpression = { (monadicExpression | terms) ~ verb ~ expression }
-term = _{ decimal | integer | variable | array | dictionary | "(" ~ expression ~ ")" }
+term = _{ decimal | integer | string | variable | array | dictionary | "(" ~ expression ~ ")" }
 terms = { term+ }
 
 program = _{ SOI ~ "\n"* ~ (expression ~ "\n"+)* ~ expression? ~ EOI }

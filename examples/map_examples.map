@@ -25,3 +25,8 @@ print avg
 /* Compute the average of just one field */
 avg_salary <- (+/ maps.'salary') ÷ ⍴ maps.'salary'
 print avg_salary
+
+/* Using the equals operator pull only data where salary is 300 */
+vals <- [ { 'age': 22, 'salary': 300 }, { 'age': 35, 'salary': 300 }, { 'age': 29, 'salary':250 } ]
+only300 <- ((vals.'salary') = 300) / vals
+print only300

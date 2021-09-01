@@ -1,2 +1,3 @@
-eq <- [1, 3, 3, 9, 12] = [1, 0, 3, 0, 0]
-print eq
+vals <- [ { 'age': 22, 'salary': 300 }, { 'age': 35, 'salary': 300 }, { 'age': 29, 'salary':250 } ]
+only3 <- ((vals.'salary') = 300) / vals
+print only3

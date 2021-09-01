@@ -4,6 +4,8 @@ use super::structures::ExecuteOutput;
 pub fn execute_equals(lhs: ExecuteOutput, rhs: ExecuteOutput) -> ExecuteOutput {
     match (lhs, rhs) {
         (ExecuteOutput::Array (lhs_array), ExecuteOutput::Array (rhs_array)) => execute_equals_arrays(lhs_array, rhs_array),
+        (ExecuteOutput::Array (array), ExecuteOutput::Numeric (numeric) )
+            | ( ExecuteOutput::Numeric (numeric), ExecuteOutput::Array (array) ) => execute_equals_array_and_numeric(array, numeric),
         (ExecuteOutput::Numeric (lhs_numeric), ExecuteOutput::Numeric (rhs_numeric)) => execute_equals_numerics(lhs_numeric, rhs_numeric),
         (lhs_other, rhs_other) => panic!("Cannot perform equals on {:?} = {:?}", lhs_other, rhs_other)
     }
@@ -37,6 +39,26 @@ fn execute_equals_arrays(lhs_array: Vec<ExecuteOutput>, rhs_array: Vec<ExecuteOu
         let rhs_val = ExecuteOutput::Numeric(rhs_numerics.get(i).unwrap().clone());
 
         output.push(execute_equals(lhs_val, rhs_val));
+    }
+
+    ExecuteOutput::Array(output)
+}
+
+fn execute_equals_array_and_numeric(array: Vec<ExecuteOutput>, numeric: Numeric) -> ExecuteOutput {
+    let mut array_numerics: Vec<Numeric> = Vec::new();
+    for val in array {
+        match val {
+            ExecuteOutput::Numeric (x) => array_numerics.push(x),
+            other => panic!("Cannot equate non numerics currently. {:?}", other)
+        }
+    }
+
+    let mut output: Vec<ExecuteOutput> = Vec::new();
+
+    let numeric = ExecuteOutput::Numeric(numeric);
+    for val in array_numerics {
+        let val = ExecuteOutput::Numeric(val);
+        output.push(execute_equals(val, numeric.clone()));
     }
 
     ExecuteOutput::Array(output)
